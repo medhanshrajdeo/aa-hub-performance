@@ -19,6 +19,8 @@ dev = [
     "pandas>=2.2",
     "pypdf>=6.21.4",
     "matplotlib>=3.11.2",
+    "statsmodels>=0.15.0",
+    "pyarrow>=26.0.0",
 ]
 
 [build-system]

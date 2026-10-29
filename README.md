@@ -36,13 +36,61 @@ per 15-minute slot -- see `src/hubops/banks.py` and
   (March) to 765.7 (August), +5.9%. Any reliability comparison that doesn't
   control for this (and for weather, the next analysis's job) would
   wrongly blame the rebank for what's partly just more traffic.
-- This is the input to signature analysis #2 (the weather-adjusted
-  difference-in-differences test) -- not yet run. The bank windows above
-  define the treatment-period schedule structure that analysis will test
+- This is the input to signature analysis #2 below -- the bank windows
+  here define the treatment-period schedule structure that analysis tests
   reliability against.
 
-_(difference-in-differences, turn-length cliff, and weather-adjusted
-scorecard still to come)_
+### 2. The rebank is associated with a real D0/A14 decline at DFW, net of weather
+
+Weather-adjusted difference-in-differences: treated = AA departures from
+DFW, control = AA departures from ORD (an AA hub with no April 2026
+structural change), Jan-Aug 2026, clustered by day. Covariates: origin
+weather severity (`hubops.metar`), scheduled departures in that hour, month
+and hour fixed effects. See
+[`analysis/dfw_rebank_diffindiff.py`](analysis/dfw_rebank_diffindiff.py) and
+[`docs/analysis/fact_rebank_effect_prototype.csv`](docs/analysis/fact_rebank_effect_prototype.csv).
+
+The rebank week itself wasn't assumed -- it's detected from the schedule:
+each week's DFW departure-time histogram is correlated against August's
+canonical post-rebank shape, and the first jump that stays sustained for
+every remaining week identifies the changeover. That lands on **2026-W15
+(April 6-12)**, a much larger and more durable break (+0.21 correlation,
+sustained above 0.80 for all 21 remaining weeks) than a smaller, separate
+schedule tweak the same method flags around week 8 -- which fades back out
+by week 11 and isn't the rebank.
+
+| Metric | DFW effect vs ORD (post - pre) | 95% CI | p-value |
+| --- | --- | --- | --- |
+| D0 | -6.4 pts | [-10.2, -2.6] | 0.0009 |
+| A14 | -8.1 pts | [-12.9, -3.3] | 0.0010 |
+| TXO | -0.14 min | [-1.82, 1.53] | 0.87 (null) |
+
+- **D0 and A14 both fell at DFW relative to ORD, net of weather and traffic
+  volume** -- consistent with the public tracking this project set out to
+  test (Cranky Flier, see the pitch above). TXO shows no measurable effect,
+  which is itself informative: whatever changed, it's not showing up as
+  slower taxi-out.
+- **The effect isn't a step function, it grows in**: the event-study plot
+  below shows a mostly flat pre-trend (one borderline week, -8, discussed
+  below) followed by a gap that widens over the first ~2 months post-rebank
+  rather than appearing immediately -- consistent with an operational
+  adjustment period, and a more convincing pattern than an instant jump
+  would be (an instant jump is easier to explain by a single confounding
+  event on one specific day).
+
+![Event study: DFW D0 vs ORD control, weekly](docs/analysis/event_study_d0.png)
+
+- **Honest caveat on parallel trends**: week -8 (about two months before
+  the rebank) shows a marginally significant negative coefficient, the one
+  pre-period point whose CI doesn't cross zero. Every other pre-period week
+  (-7 through -2) is flat and insignificant. One borderline point in an
+  8-week pre-window isn't disqualifying, but it means this result should be
+  read as "a real, sizeable, weather-adjusted decline that likely but not
+  certainly reflects the rebank" rather than an airtight causal claim --
+  exactly why this is a single-control-hub *prototype*, and why the full
+  build adds CLT and DFW year-over-year as further controls per the plan.
+
+_(turn-length cliff and weather-adjusted scorecard still to come)_
 
 ## Architecture
 

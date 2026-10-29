@@ -1,0 +1,4 @@
+hub,metric,model,estimate,se,ci_low,ci_high,p_value,n,controls
+DFW,D0,"diff-in-diff vs ORD, rebank week 15",-0.0642,0.0193,-0.102,-0.0264,0.0009,268349,"weather_severity, hour_volume, month FE, hour FE"
+DFW,A14,"diff-in-diff vs ORD, rebank week 15",-0.0806,0.0245,-0.1287,-0.0326,0.001,267415,"weather_severity, hour_volume, month FE, hour FE"
+DFW,TXO (minutes),"diff-in-diff vs ORD, rebank week 15",-0.1448,0.8551,-1.8207,1.5312,0.8655,268349,"weather_severity, hour_volume, month FE, hour FE"
