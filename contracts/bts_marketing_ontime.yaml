@@ -1,0 +1,137 @@
+# Schema contract: BTS Marketing Carrier On-Time Performance
+#
+# Source: https://www.transtats.bts.gov/ (DB1B / On-Time: Reporting Carrier
+# On-Time Performance (1987-present), marketing carrier table)
+# Grain: one row per scheduled flight leg, one monthly zip per file.
+# Cadence: monthly, lags ~6-8 weeks behind the flight month.
+#
+# Drift against this contract (missing column, changed type, unexpected
+# nullability) fails the bronze load -- see CLAUDE.md. Columns not listed
+# here are dropped at ingest (see `dropped_columns` below); add them here
+# first if a later phase needs one.
+
+source: bts_marketing_ontime
+landing_path: Files/bts/{yyyy}/{mm}/
+bronze_table: lh_bronze.bts_marketing_ontime
+
+columns:
+  - name: FlightDate
+    type: string          # bronze keeps everything as string; cast happens in silver
+    nullable: false
+    note: Origin-local calendar date of the *scheduled* departure. Not the operating date in all time zones -- see bts_times.py.
+
+  - name: Marketing_Airline_Network
+    type: string
+    nullable: false
+    note: Marketing carrier code (AA, DL, UA, ...). Used to scope gold to AA + Envoy/PSA/other Eagle operators.
+
+  - name: Operating_Airline
+    type: string
+    nullable: false
+    note: Operating carrier code -- may differ from marketing carrier (regional/codeshare).
+
+  - name: Tail_Number
+    type: string
+    nullable: true
+    note: Blank for some cancelled legs. Malformed tail numbers (not matching FAA registry format) quarantined in silver, not bronze.
+
+  - name: Flight_Number_Marketing_Airline
+    type: string
+    nullable: false
+
+  - name: Origin
+    type: string
+    nullable: false
+    note: IATA code.
+
+  - name: Dest
+    type: string
+    nullable: false
+    note: IATA code.
+
+  - name: CRSDepTime
+    type: string
+    nullable: false
+    note: Scheduled departure, hhmm, origin-local. "2400" means 00:00 next day. See bts_times.parse_hhmm_to_minutes.
+
+  - name: DepTime
+    type: string
+    nullable: true
+    note: Actual departure, hhmm, origin-local. Blank when cancelled.
+
+  - name: CRSArrTime
+    type: string
+    nullable: false
+    note: Scheduled arrival, hhmm, destination-local. No arrival date column -- resolved via bts_times.resolve_leg_times.
+
+  - name: ArrTime
+    type: string
+    nullable: true
+    note: Actual arrival, hhmm, destination-local. Blank when cancelled or diverted-without-completion.
+
+  - name: TaxiOut
+    type: string
+    nullable: true
+    note: Minutes. Cap outliers above 180 at silver per docs/kpi_spec.md TXO definition.
+
+  - name: TaxiIn
+    type: string
+    nullable: true
+
+  - name: CRSElapsedTime
+    type: string
+    nullable: false
+    note: Scheduled block minutes. The anchor value for resolving arrival date -- see bts_times.py module docstring.
+
+  - name: ActualElapsedTime
+    type: string
+    nullable: true
+
+  - name: Cancelled
+    type: string
+    nullable: false
+    note: "1.00"/"0.00" style float-as-string flag.
+
+  - name: CancellationCode
+    type: string
+    nullable: true
+    note: "A" (carrier), "B" (weather), "C" (NAS), "D" (security). Drives Controllable CF.
+
+  - name: Diverted
+    type: string
+    nullable: false
+
+  - name: CarrierDelay
+    type: string
+    nullable: true
+    note: Only populated when ArrDelayMinutes >= 15, per BTS convention. Do not treat a blank here as zero -- see kpi_spec.md "Controllable delay share" edge case.
+
+  - name: WeatherDelay
+    type: string
+    nullable: true
+
+  - name: NASDelay
+    type: string
+    nullable: true
+
+  - name: SecurityDelay
+    type: string
+    nullable: true
+
+  - name: LateAircraftDelay
+    type: string
+    nullable: true
+
+  - name: Distance
+    type: string
+    nullable: false
+
+dropped_columns:
+  # Diversion detail (Div1Airport..Div5*) and codeshare-partner identity
+  # columns: not needed for any analysis in planning/project-plan.md.
+  # Re-add here (and to the loader) before using them.
+  - "Div*"
+  - "Originally_Scheduled_Code_Share_Airline"
+  - "DOT_ID_*"
+  - "OriginCityMarketID"
+  - "DestCityMarketID"

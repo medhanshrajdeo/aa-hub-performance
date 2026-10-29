@@ -1,0 +1,96 @@
+Analyst, Airport Performance Support
+ 
+View Profile
+Need Accommodation Assistance?
+
+Careers 
+ 
+Student & Grads 
+ 
+Life at American 
+ 
+Our People 
+Search by Keyword
+Search by Location
+Apply now 
+Analyst, Airport Performance Support
+Posting Start Date:  10/28/26
+Location: DFW Headquarters Building 8 (DFW-SV08) 
+Cities: Fort Worth - TX
+Requisition ID: 88159 
+
+Job Description
+Intro
+Are you ready to explore a world of possibilities, both at work and during your time off? Join our American Airlines family, and you’ll travel the world, grow your expertise and become the best version of you.  As you embark on a new journey, you’ll tackle challenges with flexibility and grace, learning new skills and advancing your career while having the time of your life.  Feel free to enrich both your personal and work life and hop on board!
+
+Why you'll love this job
+As a member of the Airport Performance Analysis and Support team, you will play a pivotal role in providing frontline leaders with data and analytics to drive reliability, accountability, and profitability.
+
+What you'll do
+As noted above, this list is intended to reflect the current job but there may be additional essential functions (and certainly non-essential job functions) that are not referenced.  Management will modify the job or require other tasks be performed whenever it is deemed appropriate to do so, observing, of course, any legal obligations including any collective bargaining obligations.
+
+•    Supports strategic direction for airport organization through measurement and analysis of key performance metrics.
+•    Performs complex quantitative analysis on a wide range of airport subject areas to identify insights and support policy decision making
+•    Utilize data wrangling techniques in the data lake and database to generate and maintain reports on operational performance, catering to customer care, customer operations, control center, and business partners.
+•    Participates in the development of an overall analytics plan for the company and lead highly visible projects across multiple departments to support the plan
+•    Acts as an owner of airport technology projects, such as Agent Assist, ConnectMe, Automated Volunteer Processing, ACE, HMT, Aura and Biometric Screening data subject area, serving as the main contact point for data requests, metadata, and statistical analyses.
+•    Serves as the liaison between Data Engineering, Automation, and Analytics organization, developing new data sources and overseeing enhancements to existing databases.
+•    Works with business partners to help define KPIs and data sources for newly developed policies and products.
+
+All you'll need for success
+Minimum Qualifications – Education & Prior Job Experience
+
+· Bachelor’s degree in Computer Science, Statistics, Mathematics, Data Science, Business Analytics or related technical discipline; or equivalent experience/training
+
+· 3 years related work experience
+
+· 2 years of experience with data extraction, manipulation and analysis from relational databases
+
+· Experience with data extraction tools and methods (SQL, SAS, Access, etc.)
+
+· Experience using internal data warehouse’s (e.g. Mosaic) for data extraction, analysis, and reporting
+
+
+Preferred Qualifications – Education & Prior Job Experience
+
+· Master's degree
+
+· Experience developing solutions on a Big Data platform utilizing tools such as Hue, Impala, Kylo, and ZoomData.
+
+· Experience with Azure Databricks and SSMS a plus
+
+· Experience in one or more of the following programming languages – SAS, Python, R, along with associated development environments (e.g. R-Studio, JupyterHub, PyCharm, etc.)
+
+
+Skills, Licenses, and Certifications
+
+· Strong project management skills, including experience managing projects across departments
+
+· Proficient with Microsoft Office applications (MS Excel, Access and PowerPoint); advanced knowledge of Microsoft Excel and Tableau/Power BI is desirable
+
+· Comfortable writing SQL queries in at least one SQL variety (e.g., MSSQL, MySQL, etc.)
+
+· Advanced aptitude in problem-solving, including the ability to logically structure an appropriate analytical framework
+
+· Excellent leadership and teamwork skills with proven ability to work effectively in a variety of situations
+
+What you'll get
+Travel Perks: Ready to explore the world? You, your family and your friends can reach 365 destinations on more than 6,800 daily flights across our global network.
+Health Benefits: On day one, you’ll have access to your health, dental, prescription and vision benefits to help you stay well. And that’s just the start, we also offer virtual doctor visits, flexible spending accounts and more. 
+Wellness Programs: We want you to be the best version of yourself – that’s why our wellness programs provide you with all the right tools, resources and support you need.
+401(k) Program: Available upon hire and, depending on the workgroup, employer contributions to your 401(k) program are available after one year.
+Additional Benefits: Other great benefits include our Employee Assistance Program, pet insurance and discounts on hotels, cars, cruises and more
+Feel free to be yourself at American
+From the team members we hire to the customers we serve, inclusion and diversity are the foundation of the dynamic workforce at American Airlines. Our 20+ Team Member Business Resource Groups are focused on connecting our team members to our customers, suppliers, communities and shareholders, helping team members reach their full potential and creating an inclusive work environment to meet and exceed the needs of our diverse world.
+
+ 
+
+Are you ready to feel a tremendous sense of pride and satisfaction as you do your part to keep the largest airline in the world running smoothly as we care for people on life’s journey? Feel free to be yourself at American.
+
+Cities: Fort Worth - TX
+Requisition ID: 88159 
+
+Apply now 
+aa.comPrivacy PolicyView All JobsEEO - Affirmative Action Policy
+Opens in a new tab.Opens in a new tab.Opens in a new tab.Opens in a new tab.Opens in a new tab.
+Discrimination and all unlawful harassment (including sexual harassment) in employment is not tolerated. We encourage success based on our individual merits and abilities without regard to race, color, religion, national origin, gender, sexual orientation, gender identity, age, disability, marital status, citizenship status, military status, protected veteran status or employment status. We support and obey laws that prohibit discrimination everywhere we do business. American Airlines, Inc fully considers all qualified applicants including those with a criminal history. ©2025, American Airlines, Inc. We are excited you're interested in beginning your career journey with us. All applications will only be submitted through this site, and we will never require payment at any time during the application process.

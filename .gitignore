@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Local-only landing zone for manually-exported sources (CBP Excel, etc.)
+# and large downloaded source files -- never committed, see docs/runbook.md
+Files/
+*.zip
+*.parquet
+
+.env
