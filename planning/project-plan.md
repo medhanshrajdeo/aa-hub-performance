@@ -48,7 +48,7 @@ Seven real sources, picked so that three of them are messy on purpose. Clean CSV
 
 All 14 reporting carriers for 2026, including American, Envoy and PSA, are in the BTS file ([BTS Directive 40](https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-40-technical-directive-reporting-time)). Airport time zones come from airport coordinates via the Python `timezonefinder` package.
 
-Open question for Phase 1: confirm the exact BTS zip URL pattern for the marketing carrier table and the latest month published.
+~~Open question for Phase 1: confirm the exact BTS zip URL pattern for the marketing carrier table and the latest month published.~~ **Resolved 2026-10-29:** `https://transtats.bts.gov/PREZIP/On_Time_Marketing_Carrier_On_Time_Performance_Beginning_January_2018_{yyyy}_{m}.zip` (no leading zero on month). Latest published month is 2026-08 (2026-09 not yet out). Verified by downloading and validating the real file -- see `contracts/bts_marketing_ontime.yaml` and the `resolve_leg_times` validation run (13,332 real AA/DFW legs, 0 mismatches, correctly resolved 5 real HNL-DFW redeyes crossing the date line).
 
 ## Fabric architecture
 

@@ -1,9 +1,21 @@
 # Schema contract: BTS Marketing Carrier On-Time Performance
 #
-# Source: https://www.transtats.bts.gov/ (DB1B / On-Time: Reporting Carrier
-# On-Time Performance (1987-present), marketing carrier table)
+# Source: https://www.transtats.bts.gov/ -- "Marketing Carrier On-Time
+# Performance (Beginning January 2018)" table. NOT the "Reporting Carrier
+# On-Time Performance (1987-present)" table -- that one collapses marketing
+# and operating carrier into a single Reporting_Airline column, which loses
+# the Envoy/PSA-flying-as-AA distinction this project needs.
+#
 # Grain: one row per scheduled flight leg, one monthly zip per file.
-# Cadence: monthly, lags ~6-8 weeks behind the flight month.
+# Cadence: monthly, confirmed lag is ~6-8 weeks (as of 2026-10-29, latest
+# published month is 2026-08; 2026-09 is not yet out).
+#
+# Confirmed URL pattern (verified by HTTP HEAD against real files, not
+# guessed -- this closes the Phase 1 "open question" in the project plan):
+#   https://transtats.bts.gov/PREZIP/On_Time_Marketing_Carrier_On_Time_Performance_Beginning_January_2018_{yyyy}_{m}.zip
+#   (m has no leading zero, e.g. "_2026_8.zip" not "_2026_08.zip";
+#   the zip's internal CSV filename does use parens:
+#   "On_Time_Marketing_Carrier_On_Time_Performance_(Beginning_January_2018)_{yyyy}_{m}.csv")
 #
 # Drift against this contract (missing column, changed type, unexpected
 # nullability) fails the bronze load -- see CLAUDE.md. Columns not listed
@@ -25,10 +37,24 @@ columns:
     nullable: false
     note: Marketing carrier code (AA, DL, UA, ...). Used to scope gold to AA + Envoy/PSA/other Eagle operators.
 
-  - name: Operating_Airline
+  - name: "Operating_Airline "
     type: string
     nullable: false
-    note: Operating carrier code -- may differ from marketing carrier (regional/codeshare).
+    note: >-
+      Operating carrier code -- may differ from marketing carrier
+      (regional/codeshare). NOTE the real CSV header has a trailing space on
+      this column name ("Operating_Airline ") -- confirmed against the real
+      2026-08 file. Strip column names on load rather than hardcoding this
+      typo, in case BTS fixes it in a future month.
+
+  - name: Duplicate
+    type: string
+    nullable: false
+    note: >-
+      "Y" flags a row BTS has marked as a duplicate of another row in the
+      same file (observed in the real 2026-08 file; not documented in the
+      plan). Filter Duplicate != "Y" at bronze-to-silver, not at bronze --
+      keep the raw duplicate rows in bronze for traceability.
 
   - name: Tail_Number
     type: string
