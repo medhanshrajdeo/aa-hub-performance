@@ -1,0 +1,63 @@
+# Schema contract: TSA FOIA weekly checkpoint throughput
+#
+# Source: https://www.tsa.gov/foia/readingroom -- weekly PDF, linked as
+# "tsa-throughput-data-to-{month}-{day}-{year}-to-{month}-{day}-{year}.pdf"
+# (filename format drifts -- some older files say
+# "tsa-total-throughput-data-..." instead of "tsa-throughput-data-to-...".
+# Scrape the reading room page for the link list rather than guessing a URL
+# pattern; confirmed by scraping on 2026-10-29, latest file covers
+# 2026-10-18 to 2026-10-24).
+#
+# Grain: one row per (airport, checkpoint, hour). ~1,400 PDF pages/week.
+#
+# Parsed by src/hubops/tsa_pdf.py via pdfplumber's stream table extraction,
+# NOT a clean columnar source. See that module's docstring for the three
+# real quirks found against the actual file:
+#   1. Date/city/state/airport cells are only populated on the row where
+#      they change; every later row in the same block leaves them blank.
+#   2. Checkpoint "names" drift per airport -- some are descriptive
+#      ("Main Checkpoint"), many are bare numbers ("2", "10", "4B") that
+#      only mean something next to their airport.
+#   3. Date and hour carry forward INDEPENDENTLY: when only the hour
+#      changes, the date cell is left blank and only the hour restamps,
+#      with the airport list restarting from the top of the alphabet.
+#
+# No upstream schema to drift-check against (it's a human-formatted PDF,
+# not a data export) -- the contract here is really "does pdfplumber still
+# extract 8-9 columns per row with pax as the last column." If a future
+# week's PDF breaks that, tsa_pdf.py's garbage-row filter (pax must parse
+# as int) will make it silently return zero/few records rather than error,
+# so the ingest pipeline's row-count check in meta.load_log is what catches
+# a format change here, not a contract violation.
+
+source: tsa_foia_throughput
+landing_path: Files/tsa/{yyyy}/{mm}/{dd}/
+bronze_table: lh_bronze.tsa_checkpoint_hour
+
+fields:
+  - name: date
+    type: date
+    nullable: false
+  - name: hour
+    type: string
+    nullable: false
+    note: TSA's own "HH:MM" label, not guaranteed to cover every hour of every day.
+  - name: iata
+    type: string
+    nullable: false
+  - name: airport_name
+    type: string
+    nullable: false
+  - name: city
+    type: string
+    nullable: false
+  - name: state
+    type: string
+    nullable: false
+  - name: checkpoint
+    type: string
+    nullable: false
+    note: Free text, no fixed vocabulary -- see quirk #2 above. Grain key alongside (date, hour, iata).
+  - name: pax
+    type: int
+    nullable: false
