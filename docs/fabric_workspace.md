@@ -27,5 +27,14 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   translated into actual sanitization code until this run caught it). Fixed by stripping
   whitespace and swapping any Delta-invalid character for `_` before the write; second run
   **completed**, table confirmed live via the Lakehouse Tables API.
-  Currently loads **one month only (2026-08)** as a smoke test -- not yet parameterized for
-  the full Jan 2023-present backfill Phase 1 actually requires.
+  **Full Jan 2023 - Aug 2026 backfill completed 2026-10-30** (44 months, all `Completed`,
+  see `docs/fabric_backfill_log.csv`) via `scripts/fabric/run_bts_backfill.sh`. `lh_bronze.
+  bts_marketing_ontime` is now partitioned by `Year`/`Month` with idempotent per-month
+  writes (Delta `replaceWhere`). See ADR 0005 for why this bakes year/month/reset directly
+  into the pushed notebook definition per month rather than using Fabric's runtime
+  parameter-injection API (tested, didn't reliably take effect) -- and for a real incident:
+  a bug in the first version of the orchestration script (reset incorrectly inferred from
+  loop position instead of an explicit flag) wiped the Jan 2023 partition mid-backfill. Caught
+  immediately, root-caused, fixed, and the backfill restarted cleanly from a true reset.
+  The committed notebook (`fabric/nb_bronze_bts.Notebook/`) has been reset to generic
+  defaults (YEAR=2026, MONTH=8, RESET=False) matching the live item, post-backfill.

@@ -3,7 +3,7 @@
   "metadata": {
     "type": "Notebook",
     "displayName": "nb_bronze_bts",
-    "description": "Phase 1: download, land, and bronze-ify one BTS Marketing Carrier On-Time Performance month"
+    "description": "Phase 1: ingest BTS Marketing Carrier On-Time Performance 2026-08 into lh_bronze."
   },
   "config": {
     "version": "2.0",
