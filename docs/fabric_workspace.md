@@ -68,27 +68,35 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   first try. 20,740 real hourly rows, May 2023 - Oct 2026.
 
 - `nb_bronze_tsa` (id `15f0642f-5034-4df4-9734-938410524a5a`) -- the one
-  genuinely hard source. Scoped to the same Jan-Aug 2026 window as the rebank
-  diff-in-diff (35 weeks), one Fabric job per week (idempotent `replaceWhere`
-  by `week_start`), mirroring the BTS backfill pattern. Hit three real
-  obstacles in sequence:
+  genuinely hard source, and the one with the most real debugging along the
+  way. Final shape: reads one pre-combined CSV (`Files/tsa/
+  tsa_checkpoint_hour_all.csv`, all 35 weeks) and writes
+  `lh_bronze.tsa_checkpoint_hour` as Delta, partitioned by `week_start` --
+  no PDF parsing happens in Fabric at all. Four real obstacles, in order:
   1. `%pip install pdfplumber` restarts the notebook kernel, wiping variables
-     assigned before it (ADR 0007) -- fixed by cell reordering.
+     assigned before it (ADR 0007).
   2. Fabric's outbound request got `403 Forbidden` from tsa.gov even though
      plain curl (and every local download in this project) worked fine with
-     no special headers -- fixed with an honest, self-identifying
-     User-Agent.
+     no special headers -- fixed with an honest, self-identifying User-Agent.
   3. **`%pip install` is disabled entirely for batch `RunNotebook` jobs**
-     (only works in interactive sessions) -- confirmed via the real error,
-     `MagicUsageError: %pip magic command is disabled`, and Microsoft's own
-     docs (inline installation is "turned off by default" for
-     pipeline/scheduled runs; the proper fix is a custom Environment with
-     the library pre-installed, published in Full mode). Rather than build
-     and iterate on a custom Environment for one library, pivoted to the
-     same pattern as FAA: parse all 35 weeks locally (where `pdfplumber`
-     already works, proven repeatedly), upload only the clean parsed
-     result. The PDF parsing itself is single-threaded driver-side work
-     regardless of where it runs -- Fabric adds Spark session overhead per
-     job without adding any parallelism for this workload, so this isn't a
-     speed compromise, just the already-proven-reliable path.
-  See `docs/fabric_backfill_tsa_log.csv` for the per-week run log.
+     (confirmed via `MagicUsageError: %pip magic command is disabled`, and
+     Microsoft's library-management docs). Rather than build a custom
+     Environment for one library, pivoted (ADR 0008) to parsing all 35 weeks
+     locally -- `pdfplumber` already worked there, proven repeatedly, and the
+     parsing itself is single-threaded driver-side work regardless of where
+     it runs, so Fabric would only have added per-job Spark session overhead,
+     not parallelism. The background parse job (resumable -- it was killed
+     once for host memory pressure partway through and picked back up
+     cleanly from the 22 weeks already done) produced a combined 140MB/
+     1.6M-row CSV, uploaded via the same PowerShell method as FAA.
+  4. The simplified notebook's write still failed, now with a real Delta
+     error: `DELTA_FAILED_TO_MERGE_FIELDS` on `date`, because the table
+     already existed from the earlier per-week prototype with `date` as a
+     plain string, and the final version casts it to a real `DateType`.
+     Fixed with `overwriteSchema=true` (ADR 0009), which also surfaced that
+     `updateDefinition`/`getDefinition` are async (202 + poll-the-operation,
+     same as item creation) -- an earlier push-then-run attempt had
+     silently run against stale pre-fix content because of this.
+  All 35 `week_start` partitions confirmed live (verified via the OneLake
+  DFS API, not just job status). See `docs/fabric_backfill_tsa_weeks.txt`
+  for the source list and ADRs 0007-0009 for the full debugging trail.

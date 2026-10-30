@@ -29,12 +29,26 @@
 # as int) will make it silently return zero/few records rather than error,
 # so the ingest pipeline's row-count check in meta.load_log is what catches
 # a format change here, not a contract violation.
+#
+# Landing mechanism (see ADR 0008, 0009): parsed LOCALLY (not in a Fabric
+# notebook -- %pip install is disabled for batch RunNotebook jobs, and the
+# parsing itself is single-threaded driver-side work regardless of where
+# it runs, so nothing was lost doing it locally), then the combined clean
+# CSV for all weeks is uploaded once and landed as Delta. Scoped to 35
+# weeks (2026-01-04 through 2026-08-30), matching the rebank diff-in-diff
+# analysis window (ADR 0003) rather than the full BTS/weather history --
+# a full backfill to 2023 would mean ~200 weeks x ~4 min/week of parsing
+# for a source that only feeds the lowest-priority signature analysis.
 
 source: tsa_foia_throughput
-landing_path: Files/tsa/{yyyy}/{mm}/{dd}/
+landing_path: Files/tsa/tsa_checkpoint_hour_all.csv  # combined, not per-day
 bronze_table: lh_bronze.tsa_checkpoint_hour
 
 fields:
+  - name: week_start
+    type: string
+    nullable: false
+    note: "ISO date (YYYY-MM-DD) of the Saturday/Monday the source weekly PDF covers from. Partition column -- idempotent reload replaces one week via Delta replaceWhere."
   - name: date
     type: date
     nullable: false
