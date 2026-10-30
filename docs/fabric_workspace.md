@@ -38,3 +38,15 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   immediately, root-caused, fixed, and the backfill restarted cleanly from a true reset.
   The committed notebook (`fabric/nb_bronze_bts.Notebook/`) has been reset to generic
   defaults (YEAR=2026, MONTH=8, RESET=False) matching the live item, post-backfill.
+
+- `nb_bronze_faa` (id `9ea33798-d026-4b96-9cd9-8db204a7dca3`) -- reads
+  `Files/faa/dim_aircraft_aa.csv` (already clean, already PII-free -- see
+  `contracts/faa_releasable_aircraft.yaml` and ADR 0006) and writes
+  `lh_bronze.dim_aircraft` as Delta. Unlike every other notebook here, this one
+  doesn't download anything -- the FAA registry is bot-protected (ADR 0001), so
+  `src/hubops/faa_registry.py` ran locally against the manually-downloaded zip,
+  joining/filtering/dropping-PII *before* anything touched the cloud, and only
+  the small clean CSV (92KB, 1,635 rows) was uploaded (via PowerShell, see ADR
+  0006 -- `az rest`'s binary body handling silently drops bytes). Ran clean on
+  the first try. 100% of AA's real tail numbers (from all 8 locally-downloaded
+  2026 BTS months) matched the registry.

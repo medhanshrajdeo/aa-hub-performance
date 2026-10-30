@@ -1,0 +1,3 @@
+﻿CODE,MFR,MODEL,TYPE-ACFT,TYPE-ENG,AC-CAT,BUILD-CERT-IND,NO-ENG,NO-SEATS,AC-WEIGHT,SPEED,TC-DATA-SHEET,TC-DATA-HOLDER,
+3260406,EMBRAER                       ,ERJ 170-100 SE      ,5,5 ,1,0,02,070,CLASS 3,0000,               ,                                                  ,
+3260415,EMBRAER S A                   ,ERJ 170-200 LR      ,5,5 ,1,0,02,088,CLASS 3,0000,               ,                                                  ,

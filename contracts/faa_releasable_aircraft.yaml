@@ -1,0 +1,90 @@
+# Schema contract: FAA Releasable Aircraft Database (AA fleet subset)
+#
+# Source: https://registry.faa.gov/database/ReleasableAircraft.zip
+# Returns 403 to automated requests -- manual browser download required,
+# see docs/decisions/0001-bot-protected-sources-need-manual-export.md.
+#
+# Grain: one row per tail number (aircraft currently registered to an
+# operator whose BTS tail numbers appear in AA's flown schedule -- NOT
+# every US-registered aircraft; MASTER.txt itself covers ~318k aircraft
+# of every kind, filtered here to the ~1,635 tails actually seen flying
+# AA in the project's BTS data).
+#
+# UNLIKE every other source in this project, the join/filter/PII-drop
+# happens LOCALLY, before anything touches Fabric -- see
+# src/hubops/faa_registry.py and ADR 0006. The three raw FAA files
+# (MASTER.txt: registration + owner PII; ACFTREF.txt: model reference;
+# ENGINE.txt: engine reference) are never uploaded to the workspace.
+# Only the already-clean, already-PII-free output
+# (dim_aircraft_aa.csv) is. This is a stronger privacy posture than
+# "land raw bronze, drop PII columns in a later cell" -- the owner
+# name/street/city/state/zip columns never exist in cloud storage at all,
+# not even transiently.
+#
+# Validated 2026-10-30 against the real downloaded file: 1,635/1,635 real
+# AA tail numbers (collected from all 8 locally-downloaded 2026 BTS
+# months) matched in the registry, 100% match rate. Fleet composition
+# checks out against real American Airlines aircraft types: 737-800,
+# Embraer ERJ 170-200LR (E175), A321, Bombardier CL-600-2C10/2D24
+# (CRJ700/900), 787-8/9, 777-200, A319.
+
+source: faa_releasable_aircraft
+landing_path: Files/faa/dim_aircraft_aa.csv  # already-clean output, not the raw FAA zip
+bronze_table: lh_bronze.dim_aircraft
+
+columns:
+  - name: tail_number
+    type: string
+    nullable: false
+    note: "N-prefixed (e.g. N225NN) -- FAA's own N-NUMBER column omits the N, prepended on read."
+  - name: manufacturer
+    type: string
+    nullable: false
+  - name: model
+    type: string
+    nullable: false
+  - name: seats
+    type: int
+    nullable: true
+    note: From ACFTREF.NO-SEATS. Null when the model-code join misses (not observed in the real AA fleet, 100% match rate -- but a future tail with an unrecognized model code should degrade to null, not crash the load).
+  - name: num_engines
+    type: int
+    nullable: true
+  - name: engine_manufacturer
+    type: string
+    nullable: true
+    note: Null for some real rows even in a matched aircraft (e.g. a blank ENG MFR MDL in MASTER.txt) -- not every registration has an engine code on file.
+  - name: engine_model
+    type: string
+    nullable: true
+  - name: year_mfr
+    type: int
+    nullable: true
+
+dropped_columns:
+  # Everything else in MASTER.txt -- explicitly, these never get read in
+  # the first place, not filtered post-hoc:
+  - "NAME"           # owner identity -- PII
+  - "STREET"         # owner address -- PII
+  - "STREET2"
+  - "CITY"
+  - "STATE"
+  - "ZIP CODE"
+  - "COUNTY"
+  - "SERIAL NUMBER"
+  - "TYPE REGISTRANT"
+  - "REGION"
+  - "COUNTRY"
+  - "LAST ACTION DATE"
+  - "CERT ISSUE DATE"
+  - "CERTIFICATION"
+  - "STATUS CODE"
+  - "MODE S CODE"
+  - "FRACT OWNER"
+  - "AIR WORTH DATE"
+  - "OTHER NAMES(1..5)"
+  - "EXPIRATION DATE"
+  - "UNIQUE ID"
+  - "KIT MFR"
+  - "KIT MODEL"
+  - "MODE S CODE HEX"
