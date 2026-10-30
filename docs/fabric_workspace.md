@@ -50,3 +50,45 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   0006 -- `az rest`'s binary body handling silently drops bytes). Ran clean on
   the first try. 100% of AA's real tail numbers (from all 8 locally-downloaded
   2026 BTS months) matched the registry.
+
+- `nb_bronze_weather` (id `017ac6bb-751d-47f7-a9eb-84634092d075`) -- downloads
+  hourly METAR directly from IEM's ASOS API (no bot-protection, unlike FAA/DOT)
+  for AA's six primary hubs (DFW, CLT, MIA, ORD, PHX, PHL), Jan 2023 - Aug 2026,
+  lands raw per-station CSVs to Files/, writes `lh_bronze.weather_metar_raw`
+  as Delta (partitioned by station). Bronze stays raw text -- severity scoring
+  (`hubops.metar`) is a silver-layer transform, not done here. Ran clean on
+  the first try.
+
+- `nb_bronze_cbp` (id `2a3e06b1-2008-4221-bc68-f8609c77ee12`) -- reads the
+  manually-exported `Files/cbp/awt_dfw_terminal_d.csv` (see
+  `contracts/cbp_airport_wait_times.yaml`; CBP's site is a JS dashboard with
+  no automatable export, genuinely manual rather than bot-protected) and
+  writes `lh_bronze.cbp_wait_hour` as Delta. Unusually clean source -- real
+  CSV header, no PDF/merged-cell wrangling, just type casts. Ran clean on the
+  first try. 20,740 real hourly rows, May 2023 - Oct 2026.
+
+- `nb_bronze_tsa` (id `15f0642f-5034-4df4-9734-938410524a5a`) -- the one
+  genuinely hard source. Scoped to the same Jan-Aug 2026 window as the rebank
+  diff-in-diff (35 weeks), one Fabric job per week (idempotent `replaceWhere`
+  by `week_start`), mirroring the BTS backfill pattern. Hit three real
+  obstacles in sequence:
+  1. `%pip install pdfplumber` restarts the notebook kernel, wiping variables
+     assigned before it (ADR 0007) -- fixed by cell reordering.
+  2. Fabric's outbound request got `403 Forbidden` from tsa.gov even though
+     plain curl (and every local download in this project) worked fine with
+     no special headers -- fixed with an honest, self-identifying
+     User-Agent.
+  3. **`%pip install` is disabled entirely for batch `RunNotebook` jobs**
+     (only works in interactive sessions) -- confirmed via the real error,
+     `MagicUsageError: %pip magic command is disabled`, and Microsoft's own
+     docs (inline installation is "turned off by default" for
+     pipeline/scheduled runs; the proper fix is a custom Environment with
+     the library pre-installed, published in Full mode). Rather than build
+     and iterate on a custom Environment for one library, pivoted to the
+     same pattern as FAA: parse all 35 weeks locally (where `pdfplumber`
+     already works, proven repeatedly), upload only the clean parsed
+     result. The PDF parsing itself is single-threaded driver-side work
+     regardless of where it runs -- Fabric adds Spark session overhead per
+     job without adding any parallelism for this workload, so this isn't a
+     speed compromise, just the already-proven-reliable path.
+  See `docs/fabric_backfill_tsa_log.csv` for the per-week run log.

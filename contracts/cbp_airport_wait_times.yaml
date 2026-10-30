@@ -1,0 +1,97 @@
+# Schema contract: CBP Airport Wait Times (DFW Terminal D)
+#
+# Source: https://awt.cbp.gov/ -- a JS-rendered dashboard with no
+# automatable export endpoint (select airport/terminal + date range,
+# click "Create Report"). Genuinely manual, unlike FAA/DOT's
+# bot-protected-but-otherwise-static files -- see
+# docs/decisions/0001-bot-protected-sources-need-manual-export.md.
+# DFW only has one relevant terminal here: Terminal D (international
+# arrivals / federal inspection station); other DFW terminals are
+# domestic-only and aren't offered as CBP wait-time options.
+#
+# Grain: airport, terminal, hour. Real export covers 2023-05-03 through
+# 2026-10-27 (the tool's max available range at export time), comfortably
+# spanning the project's Jan 2023 - Aug 2026 analysis window.
+#
+# Unusually clean for this project's "messy" sources -- a real CSV
+# header, no merged cells, no carried-forward blanks, no PDF table
+# extraction. Landed with only type casting (strings -> int, FlightDate
+# -> date), no structural wrangling needed. Confirmed 2026-10-30 against
+# the real export: 20,740 rows.
+
+source: cbp_airport_wait_times
+landing_path: Files/cbp/awt_dfw_terminal_d.csv
+bronze_table: lh_bronze.cbp_wait_hour
+
+columns:
+  - name: AirportCode
+    type: string
+    nullable: false
+  - name: AirportName
+    type: string
+    nullable: false
+  - name: TerminalName
+    type: string
+    nullable: false
+    note: "Only value observed: 'Terminal D' (DFW's international arrivals terminal)."
+  - name: FlightDate
+    type: date
+    nullable: false
+  - name: HourRange
+    type: string
+    nullable: false
+    note: "e.g. '0400 - 0500'. 22 of 24 possible hour slots observed -- overnight hours with no international arrivals are simply absent, not zero-filled."
+  - name: TotalPassengerCount
+    type: int
+    nullable: true
+  - name: UsaPassengerCount
+    type: int
+    nullable: true
+  - name: NonUsaPassengerCount
+    type: int
+    nullable: true
+  - name: AverageWait
+    type: int
+    nullable: true
+    note: Minutes, all passengers.
+  - name: MaxWait
+    type: int
+    nullable: true
+  - name: UsaPassengerAverageWait
+    type: int
+    nullable: true
+  - name: UsaPassengerMaxWait
+    type: int
+    nullable: true
+  - name: NonUsaPassengerAverageWait
+    type: int
+    nullable: true
+  - name: NonUsaPassengerMaxWait
+    type: int
+    nullable: true
+  - name: BoothsUsed
+    type: int
+    nullable: true
+  - name: FlightCount
+    type: int
+    nullable: true
+  - name: GlobalEntryPassengerCount
+    type: int
+    nullable: true
+  - name: ExcludedPassengerCount
+    type: int
+    nullable: true
+  - name: Average_0_15_PassengerCount
+    type: int
+    nullable: true
+    note: "Passengers whose wait fell in the 0-15 min bucket. Siblings: Average_16_30, Average_31_45, Average_46_60, Average_61_90, Average_91_120, Average_121_PassengerCount (120+ min)."
+  - name: SiteId
+    type: string
+    nullable: false
+    note: "CBP's internal site code for this airport/terminal (e.g. 'A557'). Kept as-is, not decoded."
+  - name: LastUpdated
+    type: string
+    nullable: true
+    note: Kept as the raw string from the export; not the row's own observation time, just when CBP's system last touched this record.
+
+dropped_columns: []  # nothing dropped -- every column from the real export is kept
