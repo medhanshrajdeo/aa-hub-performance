@@ -152,6 +152,10 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   mismatches and 83 remaining malformed tails look like genuine BTS-side
   data anomalies (e.g. a same-tail same-day roundtrip with mismatches on
   both legs, consistent with an irregular-ops day), not resolver bugs.
-  Full 44-month/~25M-row run not yet triggered (`TEST_YEAR` still set to
-  `"2026"`/`"8"` in the committed notebook, matching this project's
-  convention of keeping committed notebooks on the small test config).
+  **Full 44-month/~25M-row run completed 2026-10-31** (`TEST_YEAR=None`,
+  35m16s runtime, job status `Completed`, no failure). The committed
+  notebook has been reset to the small test config (`TEST_YEAR="2026"`,
+  `TEST_MONTH="8"`) post-run, matching this project's established
+  convention (see `nb_bronze_bts` above) -- `lh_silver.fact_flight_leg`
+  and `fact_flight_leg_quarantine` now hold the full Jan 2023-Aug 2026
+  dataset.
