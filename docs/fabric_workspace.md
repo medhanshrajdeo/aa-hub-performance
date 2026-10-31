@@ -100,3 +100,15 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   All 35 `week_start` partitions confirmed live (verified via the OneLake
   DFS API, not just job status). See `docs/fabric_backfill_tsa_weeks.txt`
   for the source list and ADRs 0007-0009 for the full debugging trail.
+
+- `nb_bronze_airports` (id `bf718898-33ef-481d-b492-48a531893296`) -- reads
+  `Files/airports/dim_airport.csv` (OurAirports + resolved timezones, see
+  `contracts/dim_airport.yaml`) and writes `lh_bronze.dim_airport` as Delta.
+  Not one of the plan's original 7 sources -- built to unblock Phase 2
+  silver, which needs each airport's timezone to resolve BTS's local-clock
+  flight times (`hubops.bts_times.resolve_leg_times`) for all ~370 distinct
+  airports BTS covers, not just the handful hardcoded for the two completed
+  analyses. 2,060 airports, 100% coverage validated against real BTS
+  Origin/Dest codes. Ran clean on the first try. Found a real cross-source
+  quirk building it: Palm Beach Intl's IATA code changed to `DJT` in
+  OurAirports' current data, but BTS still files flights as `PBI`.

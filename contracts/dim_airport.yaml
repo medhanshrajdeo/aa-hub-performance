@@ -1,0 +1,73 @@
+# Schema contract: dim_airport (reference data, not a "source" in the
+# plan's original 7 -- built to unblock Phase 2 silver, which needs each
+# airport's timezone to resolve BTS's local-clock flight times).
+#
+# Source: https://davidmegginson.github.io/ourairports-data/airports.csv
+# (OurAirports -- public-domain aviation reference data, compiled from
+# official aviation sources; this is geographic/gazetteer data, not
+# synthetic or fabricated operational data -- analogous in kind to a ZIP
+# code database, not a flight record).
+#
+# Built by scripts/fabric/build_dim_airport.py-style logic (currently a
+# scratch script; see docs/reference/dim_airport.csv for the committed
+# output) using hubops.airports.resolve_airport_tz for the tz lookup.
+#
+# Two real data-quality decisions made building this, both found by
+# cross-checking against the real BTS data rather than trusting
+# OurAirports' own flags blindly:
+#
+# 1. OurAirports' `scheduled_service` flag is unreliable for small
+#    regional airports -- BJI (Bemidji), GUF (Gulf Shores), HEZ
+#    (Natchez), and FMN (Four Corners) are all flagged "no" despite
+#    having real BTS-reported commercial flights. Not filtered on this
+#    column at all; instead, coverage was validated directly against the
+#    full set of distinct Origin/Dest codes in the real BTS data (370
+#    codes, 100% matched after fixes).
+# 2. Country filter expanded beyond iso_country=="US" to include US
+#    territories (PR, GU, AS, MP, VI) -- OurAirports codes San Juan,
+#    Guam, Pago Pago, Saipan, and the US Virgin Islands airports under
+#    their own iso_country, not "US", but BTS treats them as domestic.
+#
+# One manual alias, documented in RENAMED_CODE_ALIASES: Palm Beach
+# International's IATA code changed to DJT in OurAirports' current data
+# (the airport itself was renamed), but BTS still files flights under
+# the historical code PBI as of the 2026 data this project uses -- a
+# real cross-source inconsistency, not a data error on either side, just
+# two datasets updating on different schedules.
+
+source: ourairports_dim_airport
+landing_path: Files/airports/dim_airport.csv
+bronze_table: lh_bronze.dim_airport
+
+columns:
+  - name: iata
+    type: string
+    nullable: false
+  - name: name
+    type: string
+    nullable: false
+  - name: municipality
+    type: string
+    nullable: true
+  - name: iso_region
+    type: string
+    nullable: true
+    note: US state code (or territory region code), with the "US-" prefix stripped.
+  - name: latitude
+    type: double
+    nullable: false
+  - name: longitude
+    type: double
+    nullable: false
+  - name: tz
+    type: string
+    nullable: false
+    note: IANA tz name, resolved from lat/long via hubops.airports.resolve_airport_tz (timezonefinder).
+  - name: is_aa_hub
+    type: boolean
+    nullable: false
+    note: "True for AA's six primary hubs (DFW, CLT, MIA, ORD, PHX, PHL) -- see planning/project-plan.md and ADR 0003."
+  - name: note
+    type: string
+    nullable: true
+    note: Non-empty only for manually-aliased codes (currently just PBI) -- explains why the row doesn't match OurAirports' own iata_code for that identifier.
