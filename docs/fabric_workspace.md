@@ -13,6 +13,7 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
 
 - [x] Lakehouse `lh_bronze` (id `09a8b1f5-f33c-4eed-912d-40b9cbdc9b06`) -- auto-created a `lh_bronze` SQL Endpoint item too
 - [x] Lakehouse `lh_silver` (id `852a5b52-5eee-4ca5-8380-3f9a970fa0a0`) -- auto-created a `lh_silver` SQL Endpoint item too
+  - `fact_flight_leg` / `fact_flight_leg_quarantine` written by `nb_silver_flights` (see below).
 - [x] Warehouse `wh_gold` (id `9fa99a49-fc04-45d7-ac4a-598c8b0ad25e`)
 - [ ] Connect Git integration -- **deferred to Phase 8 hardening**, not a blocker for Phases 1-7. GitHub is greyed out as a Git provider for this workspace (tenant setting off); Azure DevOps works but needs an org, which doesn't exist yet. Revisit then: either enable the GitHub tenant setting (Admin Portal, if this is a tenant medhansh.rajdeo@tamu.edu administers) or stand up an ADO org.
 
@@ -112,3 +113,45 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   Origin/Dest codes. Ran clean on the first try. Found a real cross-source
   quirk building it: Palm Beach Intl's IATA code changed to `DJT` in
   OurAirports' current data, but BTS still files flights as `PBI`.
+
+- `nb_silver_flights` (id `bd79b8be-c2b6-4d52-9349-d3f7e1e8dbe2`) --
+  Phase 2: resolves BTS's local-clock, no-timezone hhmm fields into real
+  UTC instants, computes per-leg KPI flags (`docs/kpi_spec.md`), applies
+  data quality constraints, writes `lh_silver.fact_flight_leg` (+
+  `fact_flight_leg_quarantine`). By far the hardest notebook in this
+  project after TSA -- five real bugs across four debugging rounds
+  before it validated clean, documented in full in ADRs 0010 and 0011:
+  1. `StructType.add()` mutates in place, corrupting the input schema.
+  2. Wrong `mapInPandas` function signature (iterator-of-batches in/out,
+     not a single DataFrame).
+  3. `array_remove(array, NULL)` doesn't strip nulls (SQL `NULL = NULL`
+     is unknown, not `TRUE`) -- used the higher-order `filter` function
+     instead.
+  4. **The real logic bug**: anchoring the *actual* departure/arrival
+     time to `FlightDate` the same way as the *scheduled* time, which
+     breaks when a delay pushes the actual time past local midnight.
+     Caught because validation checked against an *independent* ground
+     truth (BTS's own reported delay minutes) rather than just internal
+     consistency -- redefined `actual_dep_utc`/`actual_arr_utc` as
+     `sched_utc + reported_delay` instead of re-deriving them.
+  5. A pandas gotcha surfaced by that fix: `.apply()` returning a mix of
+     `None`/float silently coerces the whole Series to `float64`,
+     turning every `None` into `NaN` -- `is not None` doesn't catch
+     `NaN`. Fixed with `pd.notna()` throughout.
+  Validation also surfaced a genuine data quirk, not a bug (ADR 0011):
+  Allegiant (G4) tail numbers are missing their leading "N" in BTS's
+  export (`816NV` instead of `N816NV`) -- 9,980 of 673,065 rows on the
+  Aug-2026 test partition were quarantined over this alone. Normalized
+  by reconstructing the real tail (deterministic, carrier-specific,
+  confirmed via a throwaway `nb_diag_tail` diagnostic, not committed)
+  rather than quarantining a cosmetic export quirk.
+  Final validated numbers on the Aug-2026 test partition (673,065 rows):
+  elapsed-time match 99.999% (656,477/656,482 -- the plan's target was
+  99.9%), quarantine rate 0.017% (117/673,065 -- the plan's target was
+  <0.5%), 9,897 G4 tails normalized. The 5 remaining elapsed-time
+  mismatches and 83 remaining malformed tails look like genuine BTS-side
+  data anomalies (e.g. a same-tail same-day roundtrip with mismatches on
+  both legs, consistent with an irregular-ops day), not resolver bugs.
+  Full 44-month/~25M-row run not yet triggered (`TEST_YEAR` still set to
+  `"2026"`/`"8"` in the committed notebook, matching this project's
+  convention of keeping committed notebooks on the small test config).
