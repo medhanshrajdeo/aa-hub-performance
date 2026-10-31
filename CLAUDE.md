@@ -8,11 +8,15 @@ target job posting is `planning/job-posting-analyst-airport-performance.txt`.
 ## What this is
 
 DFW Hub Performance Analytics: an end-to-end Fabric pipeline on real federal
-and public aviation data (BTS, TSA, CBP, DOT, FAA, IEM weather) that tests
+and public aviation data (BTS, TSA, CBP, FAA, IEM weather) that tests
 whether American's April 2026 DFW rebank improved departure reliability, net
 of weather, and surfaces where frontline leaders at DFW are still losing
 controllable minutes. Built as an independent portfolio project -- no AA
 logos, no non-public data.
+
+DOT Air Travel Consumer Report and BTS T-100 are explicitly **out of
+scope** -- see [ADR 0012](docs/decisions/0012-dot-t100-scope-out.md).
+Five real sources carry the whole project.
 
 ## Working agreements
 
@@ -32,8 +36,8 @@ logos, no non-public data.
 - **KPI math matches `docs/kpi_spec.md` exactly**, including the edge cases
   (cancelled legs excluded from D0, diverted counts as completed for CF,
   etc). If a notebook or DAX measure disagrees with the spec, the spec wins
-  and the code gets fixed -- these numbers get compared to AA's own posted
-  figures and the DOT Consumer Report in phase 3/8 reconciliation.
+  and the code gets fixed -- these numbers get reconciled against BTS's
+  own raw aggregates (not DOT -- see ADR 0012) in phase 3/8.
 - **Dates and times are the easiest place to be silently wrong.** Any code
   touching BTS hhmm fields, airport local time, or UTC conversion goes
   through `src/hubops/bts_times.py` and `src/hubops/airports.py` -- don't

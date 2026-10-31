@@ -8,7 +8,7 @@ Oct 29, 2026 · @Medhansh Rajdeo
 
 American moved DFW to a new bank structure in April 2026. Public tracking showed DFW D0 trending down after the change, while American pointed to record June weather ([Cranky Flier, Jun 29 2026](https://crankyflier.com/2026/06/29/pinpointing-americans-biggest-operational-issues/)). That is a testable claim: separate weather from structure, then show which banks, fleets and aircraft turns lose time at the station.
 
-Every row is real: BTS flight-level on-time records, hourly airport weather, TSA hourly checkpoint throughput, CBP international arrival wait times, DOT consumer report tables and the FAA aircraft registry. Nothing synthetic.
+Every row is real: BTS flight-level on-time records, hourly airport weather, TSA hourly checkpoint throughput, CBP international arrival wait times, and the FAA aircraft registry. Nothing synthetic.
 
 **Scope:** all US reporting carriers loaded (about 25M flight rows, Jan 2023 to the latest BTS month) so AA can be benchmarked against Delta and United. Gold focuses on flights marketed as American (mainline, Envoy, PSA and other Eagle operators) at AA hubs, with DFW as the deep dive.
 
@@ -34,7 +34,14 @@ The ConnectMe link is public: American uses it to push flight attendants toward 
 
 ## Data sources
 
-Seven real sources, picked so that three of them are messy on purpose. Clean CSVs impress nobody; parsing weekly TSA PDFs and raw METAR strings is the wrangling this team does daily.
+**Five** real sources (DOT Air Travel Consumer Report and BTS T-100 were
+scoped out -- see [ADR 0012](../docs/decisions/0012-dot-t100-scope-out.md):
+both need manual PDF/export handling for customer-complaint and
+load-factor context that's tangential to the rebank question this project
+actually answers; five sources answering one real question beats seven
+half-used), picked so that three of them are messy on purpose. Clean CSVs
+impress nobody; parsing weekly TSA PDFs and raw METAR strings is the
+wrangling this team does daily.
 
 | Source | Grain | What it adds | How it lands | Wrangling pain |
 | --- | --- | --- | --- | --- |
@@ -42,9 +49,10 @@ Seven real sources, picked so that three of them are messy on purpose. Clean CSV
 | [Iowa Environmental Mesonet ASOS](https://mesonet.agron.iastate.edu/request/download.phtml) | Station, hourly | Visibility, ceiling, gusts, thunderstorm codes per hub | HTTP CSV per station and month | Raw METAR codes, specials between hourly obs, missing hours |
 | [TSA FOIA throughput](https://www.tsa.gov/foia/readingroom) | Airport, checkpoint, hour | Passengers screened per checkpoint at DFW and other hubs | Weekly PDFs, scraped list then download | PDF tables with carried-forward date and hour cells, checkpoint names that drift |
 | [CBP Airport Wait Times](https://awt.cbp.gov/) | Airport, terminal, hour | Average and max wait for US and non-US travelers, booths open | Manual Excel export landed in Files (documented as a manual source) | Wide layout, terminal codes |
-| [DOT Air Travel Consumer Report](https://www.transportation.gov/airconsumer) | Carrier, month or quarter | Mishandled bags and wheelchairs, complaints, involuntary denied boardings | Manual PDF download landed in Files -- see [ADR 0001](../docs/decisions/0001-bot-protected-sources-need-manual-export.md), site returns an Akamai block to automated requests | Table extraction from PDF, restated prior months |
 | [FAA Releasable Aircraft Database](https://registry.faa.gov/database/ReleasableAircraft.zip) | Tail number | Aircraft model, seats, engine type for fleet dimension | Manual zip download landed in Files -- see [ADR 0001](../docs/decisions/0001-bot-protected-sources-need-manual-export.md), site returns 403 to automated requests | Drop owner name and address columns on ingest |
-| [BTS T-100 Domestic Segment](https://www.transtats.bts.gov/) | Carrier, route, month | Seats and passengers, so load factor sits next to reliability | TranStats export | Monthly lag, joins on route only |
+
+~~DOT Air Travel Consumer Report~~ and ~~BTS T-100 Domestic Segment~~:
+scoped out, see [ADR 0012](../docs/decisions/0012-dot-t100-scope-out.md).
 
 All 14 reporting carriers for 2026, including American, Envoy and PSA, are in the BTS file ([BTS Directive 40](https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-40-technical-directive-reporting-time)). Airport time zones come from airport coordinates via the Python `timezonefinder` package.
 
@@ -69,8 +77,6 @@ A star schema in the Fabric Warehouse, with `fact_aircraft_turn` as the table no
 | `fact_station_hour` | Station, hour | Scheduled and actual departures, mean delay, weather severity score, TSA throughput. The join point for weather and passenger flow |
 | `fact_checkpoint_hour` | Airport, checkpoint, hour | Passengers screened |
 | `fact_cbp_wait_hour` | Airport, terminal, hour | Avg and max wait, US and non-US, booths open |
-| `fact_carrier_month_customer` | Carrier, month | Mishandled bag rate, wheelchairs mishandled, complaints per 100k, involuntary denied boardings per 10k |
-| `fact_route_month` | Carrier, route, month | Seats, passengers, load factor |
 | `fact_rebank_effect` | Hub, metric, model | Estimate, 95% CI, p-value, controls used. Written by the analysis notebook |
 | `dim_date` | Operating day | Holidays, schedule season, pre or post rebank flag |
 | `dim_time_15` | 15-minute slot | Hour, daypart |
@@ -89,7 +95,7 @@ Use the airline's own vocabulary. D0, A14 and CF are the three numbers AA's oper
 | KPI | Definition | Edge case to handle |
 | --- | --- | --- |
 | D0 | Operated departures leaving the gate at or before schedule, over operated departures | Cancelled legs excluded from both sides |
-| A14 | Operated arrivals within 14 minutes of schedule | Keep a second DOT-basis version for reconciliation to the Consumer Report |
+| A14 | Operated arrivals within 14 minutes of schedule | BTS basis only -- see [ADR 0012](../docs/decisions/0012-dot-t100-scope-out.md) for why there's no second DOT-basis version |
 | CF | 1 minus cancelled over scheduled | Diverted counts as completed |
 | Controllable CF | 1 minus carrier-caused (code A) cancels over scheduled | Weather, NAS, security cancels excluded |
 | B0 | Actual gate-to-gate time at or under scheduled block | Diverted excluded |
@@ -149,7 +155,7 @@ Eight pages on one Direct Lake semantic model. Page 1 is what a DFW station lead
 | 5. Rebank impact | Leadership | Event-study chart and effect sizes with 95% CI from `fact_rebank_effect` |
 | 6. Passenger flow | Customer ops | TSA throughput by checkpoint and hour vs departure waves; CBP waits at DFW by terminal |
 | 7. Customer outcomes and peers | Customer care | Bags, wheelchairs, denied boardings, complaints; A14 and CF vs Delta and United |
-| 8. Data health | Analysts | Freshness per source, row counts, DQ pass rates, reconciliation to DOT published figures |
+| 8. Data health | Analysts | Freshness per source, row counts, DQ pass rates, reconciliation to BTS raw aggregates |
 
 Design rules: one question per page title, goal lines on every KPI, drill-through from any hub to page 3, tooltips that show the KPI definition.
 
@@ -160,7 +166,7 @@ This is what separates it from a portfolio dashboard. Each item is small; togeth
 - **Idempotent, watermarked loads.** `meta.source_registry` holds URL pattern, cadence and last loaded period per source; `meta.load_log` holds rows, file hash, duration and status per run. Re-running a month overwrites that partition with Delta `replaceWhere`, never duplicates.
 - **Schema contracts.** A YAML contract per source lists expected columns and types. Drift fails the load and logs the diff.
 - **Data quality in silver.** Materialized lake view constraints (GA since March 2026) drop or fail on: duplicate leg keys, arrival before departure on the same day, delay not equal to actual minus scheduled within 1 minute, cause minutes not summing to arrival delay, malformed tail numbers. Dropped rows go to quarantine with a reason.
-- **Reconciliation to published numbers.** Monthly AA on-time rate computed on DOT basis vs the Consumer Report's Table 1, target within 0.1 point. Flight counts vs BTS totals. Shown on report page 8.
+- **Reconciliation to raw aggregates.** Monthly D0/A14/CF computed from gold vs the same metrics computed directly from bronze BTS, target exact match (not DOT -- see [ADR 0012](../docs/decisions/0012-dot-t100-scope-out.md)). Flight counts vs BTS totals. Shown on report page 8.
 - **Orchestration and alerts.** One parent pipeline: ingest, silver, gold stored procedures, then Direct Lake reframe. BTS monthly, TSA weekly, weather daily. Failures send an Outlook alert from the pipeline.
 - **CI/CD.** Workspace Git integration to GitHub, dev and prod workspaces on a deployment pipeline, a Variable Library for per-environment values. Pytest for parsing functions runs in GitHub Actions.
 - **Security and governance.** RLS by hub, workspace roles, FAA owner fields dropped at bronze so no personal data lands.
@@ -176,11 +182,11 @@ About 15 working days end to end. If the interview comes sooner, the **interview
 0. **Setup (half day).** Personal-tenant Fabric trial or F2 (not the TAMU tenant). Workspace `aa-hubops-dev`, lakehouses `lh_bronze` and `lh_silver`, warehouse `wh_gold`, GitHub repo connected. *Done when:* empty items show up in Git.
 1. **Ingest BTS (1 to 2 days).** Pipeline with a ForEach over months, Copy activity pulls each zip to `Files/bts/yyyy/mm/`, notebook unzips to bronze Delta with all columns as strings plus `_source_file` and `_loaded_at`. *Done when:* every month Jan 2023 onward is loaded, `load_log` counts match the CSV line counts, and a re-run changes nothing.
 2. **Silver flights (2 days).** Cast types, parse hhmm and 2400, roll overnight arrivals to the next date, convert to UTC, build turn pairs, apply MLV constraints. *Done when:* recomputed dep and arr delay match BTS within 1 minute on 99.9% of rows, quarantine under 0.5%, 20 hand-checked turns at DFW pair correctly.
-3. **Gold and reconciliation (1 to 2 days).** Star schema in `wh_gold` via T-SQL stored procedures. *Done when:* AA's DOT-basis on-time rate is within 0.1 point of Consumer Report Table 1 for every month checked.
+3. **Gold and reconciliation (1 to 2 days).** Star schema in `wh_gold` via T-SQL stored procedures. *Done when:* gold-layer D0/A14/CF, aggregated by month, match the same metrics computed directly from `lh_bronze.bts_marketing_ontime` to the decimal, for every month checked (DOT reconciliation dropped -- see [ADR 0012](../docs/decisions/0012-dot-t100-scope-out.md)).
 4. **Weather and reference dims (1 day).** IEM hourly METAR for all AA hubs, severity score, FAA registry to `dim_aircraft`, airport time zones. *Done when:* every AA tail in the last 12 months maps to a fleet family, and weather covers 98%+ of hub hours.
 5. **Semantic model and pages 1 to 4 (2 days).** Direct Lake on `wh_gold`, measures from the KPI section, RLS by hub. *Done when:* D0, A14 and CF match a SQL query from SSMS to the decimal for three test slices.
 6. **Analyses (2 to 3 days).** Bank reconstruction, rebank difference-in-differences with event study, turn split, weather-adjusted scorecard, D0 vs A14. *Done when:* `fact_rebank_effect` and `dim_bank` are written by notebook, and each result has a one-paragraph plain-English readout in the README.
-7. **Messy sources (2 days).** TSA PDF parser (pdfplumber), CBP export loader, Consumer Report table parser, T-100. *Done when:* parsed TSA totals for one week match the PDF's DFW total by hand.
+7. **Messy sources (2 days, mostly done).** TSA PDF parser (pdfplumber), CBP export loader -- both built in Phase 1/4 rather than deferred here. *Done when:* parsed TSA totals for one week match the PDF's DFW total by hand.
 8. **Pages 5 to 8 and hardening (2 days).** Prod workspace, deployment pipeline, Variable Library, alerts, data dictionary, runbook. *Done when:* a dev-to-prod deploy runs clean and page 8 shows green for all sources.
 9. **Story (1 day).** README with three findings, architecture diagram, 3-minute screen-recorded walkthrough. *Done when:* someone outside airlines can follow the README.
 
