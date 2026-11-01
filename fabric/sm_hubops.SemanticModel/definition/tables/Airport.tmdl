@@ -1,0 +1,28 @@
+/// IATA airport code. Grain: one row per airport. Covers every origin/dest BTS reports, not just AA hubs.
+table Airport
+	lineageTag: 69952b3b-a85b-4275-b1d7-492b74e079bd
+
+	/// IATA code, e.g. DFW.
+	column 'Airport Key'
+		dataType: string
+		lineageTag: c65609d6-147e-4fe5-a3ee-8e1ee1502da6
+		sourceColumn: airport_key
+
+	column 'Airport Name'
+		dataType: string
+		lineageTag: 05e36a45-83e2-4438-9f47-632782857783
+		sourceColumn: airport_name
+
+	/// True for DFW, CLT, MIA, ORD, PHX, PHL.
+	column 'AA Hub'
+		dataType: boolean
+		lineageTag: 2900745b-f3ce-40f5-a898-5b8a457362ba
+		sourceColumn: is_aa_hub
+
+	partition Airport = entity
+		mode: directLake
+		source
+			entityName: dim_airport
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

@@ -1,0 +1,36 @@
+relationship 'Flight Leg (Date)'
+	fromColumn: 'Flight Leg'.'Date Key'
+	toColumn: Date.'Date Key'
+
+relationship 'Flight Leg (Origin)'
+	fromColumn: 'Flight Leg'.'Origin Airport Key'
+	toColumn: Airport.'Airport Key'
+
+relationship 'Flight Leg (Carrier)'
+	fromColumn: 'Flight Leg'.'Marketing Carrier Key'
+	toColumn: Carrier.'Carrier Code'
+
+relationship 'Aircraft Turn (Airport)'
+	fromColumn: 'Aircraft Turn'.Station
+	toColumn: Airport.'Airport Key'
+
+relationship 'Station Hour (Airport)'
+	fromColumn: 'Station Hour'.Station
+	toColumn: Airport.'Airport Key'
+
+relationship 'Station Hour (Date)'
+	fromColumn: 'Station Hour'.'Date Key'
+	toColumn: Date.'Date Key'
+
+relationship 'Station Day Scorecard (Airport)'
+	fromColumn: 'Station Day Scorecard'.Station
+	toColumn: Airport.'Airport Key'
+
+relationship 'Station Day Scorecard (Date)'
+	fromColumn: 'Station Day Scorecard'.'Date Key'
+	toColumn: Date.'Date Key'
+
+relationship 'Flight Leg (Dest)'
+	fromColumn: 'Flight Leg'.'Dest Airport Key'
+	toColumn: 'Airport (Dest)'.'Airport Key'
+

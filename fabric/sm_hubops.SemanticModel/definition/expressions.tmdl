@@ -1,0 +1,8 @@
+/// OneLake Direct Lake connection to the wh_gold Warehouse (workspace aa-hubops-dev).
+expression 'DirectLake - wh_gold' =
+		let
+		    Source = AzureStorage.DataLake("https://onelake.dfs.fabric.microsoft.com/16b2a9c6-6418-485f-865f-c47442b8b6c6/9fa99a49-fc04-45d7-ac4a-598c8b0ad25e", [HierarchicalNavigation=true])
+		in
+		    Source
+	lineageTag: 1045df35-6e1e-4ed2-9e4e-f8d084b7d230
+

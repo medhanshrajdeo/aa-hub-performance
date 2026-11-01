@@ -1,0 +1,55 @@
+/// DFW departure/arrival bank windows, reconstructed from the public schedule (signature analysis #1). Prototype: DFW only, March vs August 2026 -- not a continuous calendar. Standalone reference table, not related to any fact table (bank classification per flight leg doesn't exist in gold -- see analysis/dfw_bank_reconstruction.py).
+table Bank
+	lineageTag: 93ad7208-3418-4dbd-a03d-ba42597035e8
+
+	column Station
+		dataType: string
+		lineageTag: 9ded968f-db55-478a-b1ae-1499bebe7f60
+		sourceColumn: station
+
+	/// e.g. "2026-03 (pre-rebank)".
+	column Period
+		dataType: string
+		lineageTag: 371a1194-6845-4150-be06-5d0a827b4a6f
+		sourceColumn: period
+
+	column Direction
+		dataType: string
+		lineageTag: f87ff95f-d8ee-4ba4-9abc-45738a4a17c9
+		sourceColumn: direction
+
+	column 'Bank Number'
+		dataType: int64
+		formatString: 0
+		lineageTag: c8f0bace-8333-4a23-9d8e-479f7804e910
+		summarizeBy: none
+		sourceColumn: bank_number
+
+	column 'Peak Time'
+		dataType: string
+		lineageTag: 9d4fbf4e-c30d-450f-a880-e0ba5a4dd855
+		sourceColumn: peak_time
+
+	column 'Peak Avg Flights'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: 16dedf5f-eda4-472f-a103-510e12bbf350
+		sourceColumn: peak_avg_flights
+
+	column 'Window Start'
+		dataType: string
+		lineageTag: 5a4e1b8a-869a-4568-a974-82a830839797
+		sourceColumn: window_start
+
+	column 'Window End'
+		dataType: string
+		lineageTag: e2676bc4-3e60-427d-a2d4-32c64ddfcae3
+		sourceColumn: window_end
+
+	partition Bank = entity
+		mode: directLake
+		source
+			entityName: dim_bank
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

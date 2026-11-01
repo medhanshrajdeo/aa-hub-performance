@@ -1,0 +1,6 @@
+/// Row-level security for MIA station leaders. See Hub - DFW for the pattern; membership assigned in the Portal.
+role 'Hub - MIA'
+	modelPermission: read
+
+	tablePermission Airport = 'Airport'[Airport Key] = "MIA"
+

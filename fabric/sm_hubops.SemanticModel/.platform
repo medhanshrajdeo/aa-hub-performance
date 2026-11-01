@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "sm_hubops",
+    "description": "DFW Hub Performance Analytics: Direct Lake semantic model over wh_gold. KPI measures (D0, A14, CF, B0, TXO, hub throughput, controllable delay share, minutes recovered per turn) match docs/kpi_spec.md exactly."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "00000000-0000-0000-0000-000000000000"
+  }
+}

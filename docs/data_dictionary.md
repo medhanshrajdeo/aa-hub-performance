@@ -256,3 +256,31 @@ A14 -8.1pp at DFW vs ORD post-rebank, both p<0.01).
 
 Loaded from `docs/analysis/event_study_d0.csv` -- the event-study check
 that the rebank week wasn't a confound with a pre-existing trend.
+
+### `fact_station_day_scorecard` -- 8,028 rows
+
+Real output of signature analysis #4 (weather/volume-adjusted expected-D0
+model), loaded 2026-11-01 -- closes the plan's "analyses 2 and 4 write to
+gold" gap for analysis #4 (`fact_rebank_effect` already covered analysis
+#2). See [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md)
+for the loading notebook's `fast_executemany` fix.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `station` | VARCHAR(3) | 6 AA hub stations only |
+| `date_key` | INT | `yyyyMMdd` |
+| `scheduled_departures`, `operated_departures`, `d0_count` | INT | |
+| `max_severity_score` | INT | NULL-able; day's single worst hourly weather severity, 0-4 |
+| `d0_rate`, `expected_d0_rate` | FLOAT | Actual vs the weighted-OLS-predicted D0 rate (weather severity + log volume + station/month fixed effects) |
+| `d0_vs_expected_pp` | FLOAT | Actual minus expected, in points -- the weather-adjusted D0 gap. Negative means underperforming given that day's weather/volume |
+
+Loaded from `docs/analysis/station_day_scorecard.csv`, the real output
+of `analysis/dfw_weather_scorecard.py`.
+
+## Semantic model
+
+`sm_hubops` (Direct Lake over `wh_gold`) is documented separately in
+[`docs/fabric_workspace.md`](fabric_workspace.md#semantic-model) --
+its 23 measures match this file's KPI math exactly (`docs/kpi_spec.md`
+is the formula source of truth for both the Warehouse and the semantic
+model).

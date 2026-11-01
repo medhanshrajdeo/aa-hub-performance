@@ -1,0 +1,63 @@
+/// Grain: station + UTC date + UTC hour of scheduled departure. The join point for weather and passenger flow. TSA throughput is NOT joined in here (TSA's hour is station-local; see fact_checkpoint_hour standalone for that).
+table 'Station Hour'
+	lineageTag: 0a506fa2-3592-4956-ac60-c6b217e60d1a
+
+	measure 'Avg Weather Severity' = AVERAGE ( 'Station Hour'[Weather Severity Score] )
+		formatString: #,##0.0
+		displayFolder: Weather
+		lineageTag: c41d90c4-7af7-4716-aa9b-3af07a7f3c4e
+
+	column Station
+		dataType: string
+		isHidden
+		lineageTag: d5034e19-91c0-44fe-97e5-d745c3f768d8
+		sourceColumn: station
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		lineageTag: 9a6cc938-9fad-4277-874d-6795b8e1897a
+		summarizeBy: none
+		sourceColumn: date_key
+
+	/// UTC hour, 0-23.
+	column Hour24
+		dataType: int64
+		formatString: 0
+		lineageTag: ef245fb5-97b0-4f73-96f9-dc044ba1634f
+		summarizeBy: none
+		sourceColumn: hour24
+
+	column 'Scheduled Departures'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 89809f4a-d94b-4459-af0e-b83901bf14a6
+		sourceColumn: scheduled_departures
+
+	column 'Actual Departures'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 0e676ba1-a152-4956-ba72-7fdedf56eaf8
+		sourceColumn: actual_departures
+
+	column 'Mean Dep Delay Min'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: 6d71f9ed-d9f0-46e1-8632-79cadb3e1bcf
+		sourceColumn: mean_dep_delay_min
+
+	/// 0-4; NULL for ~96.3% of rows (weather only sourced for AA's 6 hub stations).
+	column 'Weather Severity Score'
+		dataType: int64
+		formatString: 0
+		lineageTag: 874b6b36-6022-407c-b16e-0a8cea5ae3b1
+		summarizeBy: none
+		sourceColumn: weather_severity_score
+
+	partition 'Station Hour' = entity
+		mode: directLake
+		source
+			entityName: fact_station_hour
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

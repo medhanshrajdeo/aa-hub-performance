@@ -1,0 +1,76 @@
+/// Real output of signature analysis #4 (weather/volume-adjusted expected-D0 model, analysis/dfw_weather_scorecard.py). Grain: station + day, 6 AA hub stations, Jan 2023 - Aug 2026.
+table 'Station Day Scorecard'
+	lineageTag: 98ad6c59-5847-4265-98b1-6268d7091b3e
+
+	/// The weather-adjusted D0 gap (signature analysis #4): average actual-minus-expected D0 rate in points, given that day's weather and volume.
+	measure 'Avg D0 vs Expected (pp)' = AVERAGE ( 'Station Day Scorecard'[D0 Vs Expected Pp] )
+		formatString: +0.0;-0.0
+		displayFolder: KPI
+		lineageTag: dc5be59c-532b-4dbe-8aa6-70f1eb53c3a5
+
+	column Station
+		dataType: string
+		isHidden
+		lineageTag: 01cf36e8-b11b-48a5-8571-4e63103fcab4
+		sourceColumn: station
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		lineageTag: e1a58a06-b061-40e1-be80-8ea866ec6774
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column 'Scheduled Departures'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 7e220f7c-e072-427c-ac98-f6ea4c94f5c8
+		sourceColumn: scheduled_departures
+
+	column 'Operated Departures'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 574362a5-2a88-400f-b027-42c7ec3b2d35
+		sourceColumn: operated_departures
+
+	column 'D0 Count'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: e7996aa2-a2d4-4050-9966-34f3c31b3b3a
+		sourceColumn: d0_count
+
+	/// Day's single worst hourly weather severity observation, 0-4.
+	column 'Max Severity Score'
+		dataType: int64
+		formatString: 0
+		lineageTag: 73ca52b6-9a26-4530-9313-bb5064b74258
+		summarizeBy: none
+		sourceColumn: max_severity_score
+
+	column 'D0 Rate'
+		dataType: double
+		formatString: 0.0%
+		lineageTag: a884e4ce-778c-470e-b409-75e56e2b4bb2
+		sourceColumn: d0_rate
+
+	/// Predicted D0 rate from the weighted OLS (weather severity + log volume + station/month fixed effects).
+	column 'Expected D0 Rate'
+		dataType: double
+		formatString: 0.0%
+		lineageTag: 7072e9e8-077e-405a-904c-03f9c11f7730
+		sourceColumn: expected_d0_rate
+
+	/// Actual minus expected D0 rate, in percentage points. The weather-adjusted D0 gap -- negative means underperforming given that day's weather/volume.
+	column 'D0 Vs Expected Pp'
+		dataType: double
+		formatString: +0.0;-0.0
+		lineageTag: e98bca69-e35f-4386-8d4c-3ae034e2e173
+		sourceColumn: d0_vs_expected_pp
+
+	partition 'Station Day Scorecard' = entity
+		mode: directLake
+		source
+			entityName: fact_station_day_scorecard
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

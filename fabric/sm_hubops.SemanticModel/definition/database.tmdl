@@ -1,0 +1,7 @@
+/// DFW Hub Performance Analytics: Direct Lake semantic model over wh_gold. KPI measures (D0, A14, CF, B0, TXO, hub throughput, controllable delay share, minutes recovered per turn) match docs/kpi_spec.md exactly.
+database sm_hubops
+	id: 9fc47519-9010-455f-977f-d201c18f94e3
+	compatibilityLevel: 1604
+	compatibilityMode: powerBI
+	language: 1033
+

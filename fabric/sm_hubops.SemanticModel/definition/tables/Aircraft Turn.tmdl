@@ -1,0 +1,70 @@
+/// One row per paired turn: a tail's inbound arrival at a station, paired with its next departure from that same station (same tail, same station, gap under 6h). 893,482 of 21,024,172 rows are at DFW.
+table 'Aircraft Turn'
+	lineageTag: 2a81e92b-5d95-43ba-a772-bdce1de4de3b
+
+	/// Inbound arrival delay minus outbound departure delay, averaged across paired turns -- docs/kpi_spec.md.
+	measure 'Minutes Recovered per Turn' = AVERAGE ( 'Aircraft Turn'[Minutes Recovered] )
+		formatString: #,##0.0
+		displayFolder: KPI
+		lineageTag: 44baf5e2-ee4d-4742-88d3-2cc0d8ab95b0
+
+	measure 'Turn Count' = COUNTROWS ( 'Aircraft Turn' )
+		formatString: #,##0
+		displayFolder: Volume
+		lineageTag: cae7420e-9466-40db-a943-e23f6c6bdff7
+
+	column Station
+		dataType: string
+		isHidden
+		lineageTag: a83462ab-d7e0-4262-a056-6c3a03262817
+		sourceColumn: station
+
+	/// NULL unless the tail matches AA's own fleet (dim_aircraft).
+	column 'Fleet Family'
+		dataType: string
+		lineageTag: da102d66-1be3-4467-b03b-5d832952c5da
+		sourceColumn: fleet_family
+
+	column 'Scheduled Turn Min'
+		dataType: double
+		formatString: #,##0
+		lineageTag: c00db525-66c6-4f30-95a6-3d84ea1fc2ac
+		sourceColumn: scheduled_turn_min
+
+	column 'Actual Turn Min'
+		dataType: double
+		formatString: #,##0
+		lineageTag: 3e1d88da-fafb-48ec-be94-79b3d7b6d48c
+		sourceColumn: actual_turn_min
+
+	column 'Inbound Arr Delay Min'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: e4f9c830-4648-4af4-9243-fb02260f2b0b
+		sourceColumn: inbound_arr_delay_min
+
+	column 'Outbound Dep Delay Min'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: 58c6a7c9-a886-4273-a233-201198bde0b2
+		sourceColumn: outbound_dep_delay_min
+
+	/// Inbound arrival delay minus outbound departure delay; positive means the turn recovered time.
+	column 'Minutes Recovered'
+		dataType: double
+		isHidden
+		lineageTag: e25de5a2-bb16-435e-b990-5cfb6ae14bf1
+		sourceColumn: minutes_recovered
+
+	column 'Turn Below Fleet P10'
+		dataType: boolean
+		lineageTag: 9269f8a2-8220-40b1-93b5-adf8b8f6f35b
+		sourceColumn: turn_below_fleet_p10
+
+	partition 'Aircraft Turn' = entity
+		mode: directLake
+		source
+			entityName: fact_aircraft_turn
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

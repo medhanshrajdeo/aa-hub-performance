@@ -1,0 +1,6 @@
+/// Row-level security for PHX station leaders. See Hub - DFW for the pattern; membership assigned in the Portal.
+role 'Hub - PHX'
+	modelPermission: read
+
+	tablePermission Airport = 'Airport'[Airport Key] = "PHX"
+

@@ -15,12 +15,15 @@ weather). Silver: BTS times resolved to UTC, KPI flags computed, quality
 quarantine at 0.017% (target <0.5%). Gold: full star schema live in
 `wh_gold` (dims + `fact_flight_leg`, `fact_checkpoint_hour`,
 `fact_cbp_wait_hour`, `fact_aircraft_turn`, `fact_station_hour`,
-`fact_rebank_effect`), reconciled against bronze raw aggregates to
-within 0.0001 point across all 44 months. All six signature analyses
-below are done. Phase 5 (Direct Lake semantic model + Power BI report)
-is next -- blocked on a licensing step only a human can complete (see
-`docs/runbook.md`'s "Not yet built"). See the project plan's "Build
-phases" section for the rest.
+`fact_rebank_effect`, `fact_station_day_scorecard`), reconciled against
+bronze raw aggregates to within 0.0001 point across all 44 months. All
+six signature analyses below are done. Phase 5's semantic model is also
+done: `sm_hubops`, a Direct Lake model over `wh_gold` with RLS by hub,
+23 measures matching `docs/kpi_spec.md` exactly, D0/A14/CF verified
+against SQL to the decimal for 3 test slices (see
+[ADR 0014](docs/decisions/0014-direct-lake-semantic-model-quirks.md)).
+The Power BI report pages themselves (1-4) are next. See the project
+plan's "Build phases" section for the rest.
 
 ## Findings
 

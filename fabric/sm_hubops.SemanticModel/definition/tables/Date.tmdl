@@ -1,0 +1,90 @@
+/// Calendar day, 2023-01-01 to 2026-12-31. Grain: one row per date.
+table Date
+	lineageTag: b7372c70-1f16-416c-81af-a86e1ed775dd
+	dataCategory: Time
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		lineageTag: f86219b3-31a3-43a5-808d-36282bc3c646
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column 'Full Date'
+		dataType: dateTime
+		isUnique
+		formatString: yyyy-mm-dd
+		lineageTag: ecdafb1b-8e32-490b-a454-1c6366343a76
+		sourceColumn: full_date
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: f50efdc9-2208-4062-ba41-ba5143bdc06d
+		summarizeBy: none
+		sourceColumn: year
+
+	column Quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: 1c150092-4a9e-46b7-a979-8f93dd8a6a93
+		summarizeBy: none
+		sourceColumn: quarter
+
+	column 'Month Number'
+		dataType: int64
+		isHidden
+		lineageTag: 8a404fc0-e38d-4f37-8737-4bae5a3fc679
+		summarizeBy: none
+		sourceColumn: month
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: 15b12a4b-6d88-4135-b5ea-5375bb76c9f4
+		sourceColumn: month_name
+		sortByColumn: 'Month Number'
+
+	column 'Day Of Week Number'
+		dataType: int64
+		isHidden
+		lineageTag: bac54759-18ae-41b2-8f10-f2d92922aa63
+		summarizeBy: none
+		sourceColumn: day_of_week
+
+	column 'Day Name'
+		dataType: string
+		lineageTag: dff95f43-5b17-478d-809b-d74ac67a0267
+		sourceColumn: day_name
+		sortByColumn: 'Day Of Week Number'
+
+	/// True for Saturday or Sunday.
+	column 'Is Weekend'
+		dataType: boolean
+		lineageTag: f976283c-d2d0-4f8e-a4af-5ecd23fa9189
+		sourceColumn: is_weekend
+
+	/// Real US federal holiday observed date (nth-weekday or fixed-date-with-observance rules).
+	column 'Is Holiday'
+		dataType: boolean
+		lineageTag: 79f9109a-1115-4628-9173-d5e8e6cedb3a
+		sourceColumn: is_holiday
+
+	/// summer (Apr-Oct) or winter (Nov-Mar), an approximation of IATA scheduling seasons.
+	column 'Schedule Season'
+		dataType: string
+		lineageTag: 8311135c-f485-437f-89db-42c38326de1f
+		sourceColumn: schedule_season
+
+	/// True from 2026-04-06 (week 15), the sustained-jump week detected from the schedule data itself -- see ADR 0003.
+	column 'Is Post Rebank'
+		dataType: boolean
+		lineageTag: e332078e-6bba-4be5-82d9-361109065f37
+		sourceColumn: is_post_dfw_rebank
+
+	partition Date = entity
+		mode: directLake
+		source
+			entityName: dim_date
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

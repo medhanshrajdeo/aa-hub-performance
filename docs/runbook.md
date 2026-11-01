@@ -129,10 +129,14 @@ default.
 
 ## Not yet built
 
-- **Phase 5 (Direct Lake semantic model + Power BI report)**: blocked
-  on a licensing step only a human can complete -- the Power BI
-  Authoring MCP tool's EULA must be reviewed and accepted by a person,
-  never by an agent automatically. Needs the project owner's explicit
-  go-ahead before this phase can start.
+- **Phase 5's Power BI report (pages 1-4)**: the Direct Lake semantic
+  model half of Phase 5 is done -- `sm_hubops`, live in the
+  `AmericanAirlines` workspace, RLS by hub, 23 measures matching
+  `docs/kpi_spec.md` exactly, D0/A14/CF verified against SQL to the
+  decimal for 3 test slices (see
+  [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md) and
+  `docs/fabric_workspace.md`'s "Semantic model" section). The actual
+  report pages (visuals, layout, RLS membership assignment -- a Portal
+  action this tool doesn't do) are not built yet.
 - Production hardening (deployment pipeline, Variable Library, alerts) --
   Phase 8, not started.

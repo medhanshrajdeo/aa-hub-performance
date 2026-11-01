@@ -1,10 +1,18 @@
 # Fabric workspace
 
-Dev workspace for this project (phase 0 of `planning/project-plan.md`
-calls it `aa-hubops-dev`):
+Dev workspace for this project. Phase 0 of `planning/project-plan.md`
+planned to call it `aa-hubops-dev`; the workspace that actually got
+created is named **`AmericanAirlines`** (`az rest GET /v1/workspaces/{id}`
+confirmed this 2026-11-01, while building the semantic model and
+needing the name, not just the ID, for the first time -- see
+[ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md)). Use
+the real name for anything name-based (`ConnectFabric`,
+`DeployToFabric`); every `az rest` call in this project already used
+the ID, which was never wrong.
 
 - URL: https://app.fabric.microsoft.com/groups/16b2a9c6-6418-485f-865f-c47442b8b6c6/list?experience=fabric-developer
 - Workspace ID: `16b2a9c6-6418-485f-865f-c47442b8b6c6`
+- Workspace display name: `AmericanAirlines`
 - Capacity: Fabric Trial
 - Workspace settings: large semantic model storage format
 
@@ -253,4 +261,39 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   turns), 8,040 station-days (99.9% weather coverage). Both CSVs
   downloaded via the OneLake DFS API and analyzed locally --
   `analysis/dfw_turn_cliff.py` and `analysis/dfw_weather_scorecard.py` --
-  see the README's Findings #3 and #4.
+  see the README's Findings #3 and #4. Later extended with two more
+  export cells for signature analyses #5 and #6 (D0-vs-A14 tradeoff,
+  passenger flow) -- see the README's Findings #5 and #6.
+
+- `nb_gold_station_scorecard` (id `ff10c882-8519-487c-8c51-3acb2c5f3f8f`)
+  -- loads `fact_station_day_scorecard` from analysis #4's real output
+  (`docs/analysis/station_day_scorecard.csv`, uploaded to
+  `Files/analysis/` via the ADR 0006 pattern), closing the plan's
+  "analyses 2 and 4 write to gold" gap for analysis #4 (analysis #2's
+  `fact_rebank_effect` already did this; #4 never had). Hit a real
+  pyodbc performance bug fixed with `fast_executemany` + chunked
+  inserts -- see [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md#4-row-by-row-pyodbcexecutemany-stalls-at-real-not-tiny-row-counts).
+  Ran clean: 8,028 rows.
+
+- `nb_validate_semantic_model` (id `3b0cf071-21a8-42b2-b2a1-7e92aa4c77bf`)
+  -- throwaway, not part of the pipeline: computes D0/A14/CF via T-SQL
+  for 3 test slices (overall, DFW-Aug-2026, AA-2024) to cross-check
+  against `sm_hubops`'s DAX measures for Phase 5's "done when". All
+  three matched to 8+ significant figures.
+
+## Semantic model
+
+- `sm_hubops` (id `9fc47519-9010-455f-977f-d201c18f94e3`) -- Direct
+  Lake over `wh_gold`, built via the `powerbi-modeling-mcp` MCP tool
+  (EULA reviewed and accepted by the project owner first). 9 tables
+  (`Date`, `Airport`, `Airport (Dest)`, `Carrier`, `Bank`, `Flight Leg`,
+  `Aircraft Turn`, `Station Hour`, `Station Day Scorecard`), 9
+  relationships, 23 measures matching `docs/kpi_spec.md` exactly, 6
+  per-hub RLS roles (`Hub - DFW/CLT/MIA/ORD/PHX/PHL`, filtering
+  `Airport`; role *membership* -- which real users belong to which role
+  -- is a Portal action, not done here or by this tool). TMDL exported
+  to `fabric/sm_hubops.SemanticModel/`. Three real Direct Lake/RLS
+  quirks hit and resolved (or honestly documented as a known
+  limitation) building it -- see
+  [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md).
+  Report pages (1-4) are not yet built on top of it.

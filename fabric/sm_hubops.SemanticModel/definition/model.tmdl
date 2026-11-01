@@ -1,0 +1,27 @@
+model sm_hubops
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_ProTooling = ["MCP-PBIModeling"]
+
+ref table Date
+ref table Airport
+ref table Carrier
+ref table Bank
+ref table 'Flight Leg'
+ref table 'Aircraft Turn'
+ref table 'Station Hour'
+ref table 'Station Day Scorecard'
+ref table 'Airport (Dest)'
+
+ref role 'Hub - DFW'
+ref role 'Hub - CLT'
+ref role 'Hub - MIA'
+ref role 'Hub - ORD'
+ref role 'Hub - PHX'
+ref role 'Hub - PHL'
+

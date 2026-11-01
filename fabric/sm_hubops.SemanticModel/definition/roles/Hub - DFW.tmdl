@@ -1,0 +1,6 @@
+/// Row-level security for DFW station leaders. Filters Airport to DFW; every fact table relates to Airport (directly or via Flight Leg's active Origin relationship), so this cascades to all facts. Membership (which real users belong to this role) is a Portal action, not done here -- see docs/runbook.md.
+role 'Hub - DFW'
+	modelPermission: read
+
+	tablePermission Airport = 'Airport'[Airport Key] = "DFW"
+

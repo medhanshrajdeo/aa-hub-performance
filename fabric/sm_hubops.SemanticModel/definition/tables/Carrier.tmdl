@@ -1,0 +1,33 @@
+/// IATA carrier code. Grain: one row per carrier.
+table Carrier
+	lineageTag: 5ade4881-c996-4617-8d03-088c86c10a89
+
+	column 'Carrier Code'
+		dataType: string
+		lineageTag: 1315fcc9-2e5f-4f19-900b-c4f0be700d2f
+		sourceColumn: carrier_key
+
+	column 'Carrier Name'
+		dataType: string
+		lineageTag: 5b63f17f-8549-4803-8470-b4b83b8f5b7c
+		sourceColumn: carrier_name
+
+	/// True for the 10 major carriers in this data (AA, DL, UA, WN, AS, B6, NK, F9, G4, HA).
+	column 'Is Mainline'
+		dataType: boolean
+		lineageTag: dcd0e3b0-d6a2-48f3-b5cd-bb7fd0ef2b05
+		sourceColumn: is_mainline
+
+	/// True only for AA itself and its wholly-owned Eagle subsidiaries (Envoy/MQ, PSA/OH, Piedmont/PT). Independent regionals that also fly for other airlines (SkyWest, Mesa, etc.) are false here even when flying as American Eagle -- filter Flight Leg[Marketing Carrier Key] = "AA" directly for AA-branded flights regardless of operator.
+	column 'AA Family'
+		dataType: boolean
+		lineageTag: b2677652-67ef-46af-91f4-ff4ce7877ff9
+		sourceColumn: is_aa_family
+
+	partition Carrier = entity
+		mode: directLake
+		source
+			entityName: dim_carrier
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

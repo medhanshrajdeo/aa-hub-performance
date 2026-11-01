@@ -1,0 +1,17 @@
+/// Role-playing copy of Airport, used only as the join target for Flight Leg's Dest Airport Key relationship. Exists because USERELATIONSHIP (the literal docs/kpi_spec.md pattern for Hub Throughput Pts) errors under RLS ("UseRelationship() and CrossFilter() functions are not available in this context", confirmed under the Hub - DFW role) -- this table plus a TREATAS-based filter in A0 % is the standard RLS-safe substitute. No RLS of its own: A0 % projects Airport's (RLS-filtered) visible station(s) onto this table via TREATAS, so it inherits the restriction without needing its own role permissions.
+table 'Airport (Dest)'
+	lineageTag: 5cc79582-5738-4a7f-a02a-40f3d0cc22e5
+
+	column 'Airport Key'
+		dataType: string
+		isHidden
+		lineageTag: bc22e0de-f89b-45d2-a5a8-e7e7503b24c0
+		sourceColumn: airport_key
+
+	partition 'Airport (Dest)' = entity
+		mode: directLake
+		source
+			entityName: dim_airport
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+

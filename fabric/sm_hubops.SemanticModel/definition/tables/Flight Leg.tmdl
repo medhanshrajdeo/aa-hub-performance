@@ -1,0 +1,254 @@
+/// One row per scheduled BTS flight leg, Jan 2023 - Aug 2026, all 14 reporting carriers. Reconciled against bronze raw aggregates: max D0 diff 0.0000924, max CF diff 0.0000087 across all 44 months. FLOAT source columns (Dep/Arr Delay Min, Taxi Out Min, elapsed/delay-cause minutes) use dataType double, not Decimal -- Direct Lake requires an exact match to the Warehouse's physical column type, overriding the usual avoid-Double modeling preference. No by-hour slicing column yet -- Direct Lake tables can't carry DAX calculated columns (tried a Dep Hour Utc column, rejected at deploy: 'Standard expression context may not be used for calculated columns in Direct Lake tables'); an hour-of-day attribute would need to be materialized as a real column in the gold fact_flight_leg table itself, not derived here.
+table 'Flight Leg'
+	lineageTag: e87a3189-e032-497e-b761-11672398e26a
+
+	/// All scheduled legs, including cancelled.
+	measure 'Flight Count' = COUNTROWS ( 'Flight Leg' )
+		formatString: #,##0
+		displayFolder: Volume
+		lineageTag: ff0020b8-af8d-4ee9-b9f2-63fcb963c830
+
+	measure 'Operated Flight Count' = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE )
+		formatString: #,##0
+		displayFolder: Volume
+		lineageTag: 41b8806c-d8fa-469c-9db9-391900c41984
+
+	measure 'Cancelled Flight Count' = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = TRUE )
+		formatString: #,##0
+		displayFolder: Volume
+		lineageTag: 8d8a8b78-0ca5-4c2c-b37e-8d3e93b2072b
+
+	/// Operated departures leaving the gate at or before schedule, over operated departures. Cancelled legs excluded from both sides -- docs/kpi_spec.md.
+	measure 'D0 %' =
+			VAR Operated = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE )
+			VAR OnTime = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE, 'Flight Leg'[Dep Delay Min] <= 0 )
+			RETURN DIVIDE ( OnTime, Operated )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: 6d0ab35c-1dcc-4cb7-8e26-e07969aa57d3
+
+	/// Arrival analogue of D0 %, for flights arriving at whichever station(s) are visible on Airport. Uses TREATAS onto a role-playing 'Airport (Dest)' table rather than USERELATIONSHIP (which hard-errors under RLS: "UseRelationship() and CrossFilter() functions are not available in this context", confirmed under Hub - DFW). KNOWN LIMITATION, not fully fixed: under a per-hub RLS role this now returns blank (not an error) rather than the correct inbound figure -- the role's filter lives on Airport/origin, so Flight Leg rows where that hub is only the destination (origin elsewhere) are never visible to that role at all; TREATAS can't grant visibility RLS itself withholds. Works correctly for unrestricted (non-RLS) users. A real fix needs RLS redesigned around a disconnected 'current hub' lookup table (SELECTEDVALUE-driven explicit filters on Flight Leg's Origin/Dest columns) rather than a relationship-propagated dimension filter -- out of scope for this phase.
+	measure 'A0 %' =
+			VAR Operated = CALCULATE ( COUNTROWS ( 'Flight Leg' ), TREATAS ( VALUES ( 'Airport'[Airport Key] ), 'Airport (Dest)'[Airport Key] ), 'Flight Leg'[Is Cancelled] = FALSE )
+			VAR OnTime = CALCULATE ( COUNTROWS ( 'Flight Leg' ), TREATAS ( VALUES ( 'Airport'[Airport Key] ), 'Airport (Dest)'[Airport Key] ), 'Flight Leg'[Is Cancelled] = FALSE, 'Flight Leg'[Arr Delay Min] <= 0 )
+			RETURN DIVIDE ( OnTime, Operated )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: 38aebbaa-55b5-433d-86ea-2eae840f9727
+
+	/// Operated arrivals within 14 minutes of schedule, over operated arrivals. BTS basis only -- docs/kpi_spec.md.
+	measure 'A14 %' =
+			VAR Operated = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE )
+			VAR OnTime14 = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE, 'Flight Leg'[Arr Delay Min] <= 14 )
+			RETURN DIVIDE ( OnTime14, Operated )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: 3c2ae479-8722-4bae-88c6-3d1cfee8138c
+
+	/// 1 minus cancelled over scheduled. Diverted legs are not cancelled, so they count as completed automatically -- docs/kpi_spec.md.
+	measure 'CF %' =
+			VAR Scheduled = COUNTROWS ( 'Flight Leg' )
+			VAR Cancelled = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = TRUE )
+			RETURN 1 - DIVIDE ( Cancelled, Scheduled )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: 90c0f1fe-7423-4ac1-a231-818fbcb4ba5d
+
+	/// 1 minus carrier-caused (cancel code A) cancels over scheduled. Weather/NAS/security cancels excluded from the numerator -- docs/kpi_spec.md.
+	measure 'Controllable CF %' =
+			VAR Scheduled = COUNTROWS ( 'Flight Leg' )
+			VAR ControllableCancels = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = TRUE, 'Flight Leg'[Cancellation Code] = "A" )
+			RETURN 1 - DIVIDE ( ControllableCancels, Scheduled )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: d86768c4-e6b2-4b18-9d68-478fbf8109f7
+
+	/// Actual gate-to-gate time at or under scheduled block time. Diverted legs excluded -- docs/kpi_spec.md.
+	measure 'B0 %' =
+			VAR Eligible = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE, 'Flight Leg'[Is Diverted] = FALSE )
+			VAR OnOrUnderBlock = CALCULATE ( COUNTROWS ( 'Flight Leg' ), 'Flight Leg'[Is Cancelled] = FALSE, 'Flight Leg'[Is Diverted] = FALSE, FILTER ( 'Flight Leg', 'Flight Leg'[Actual Elapsed Min] <= 'Flight Leg'[Crs Elapsed Min] ) )
+			RETURN DIVIDE ( OnOrUnderBlock, Eligible )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: e31b9704-4e6d-4561-a850-60251e599c6f
+
+	/// TXO. Already capped at 180 min upstream in the Warehouse column (docs/kpi_spec.md's edge case) -- no additional capping here.
+	measure 'Mean Taxi-Out Min' = CALCULATE ( AVERAGE ( 'Flight Leg'[Taxi Out Min] ), 'Flight Leg'[Is Cancelled] = FALSE )
+		formatString: #,##0.0
+		displayFolder: KPI
+		lineageTag: 8999e4fe-1173-4824-a04a-88fd224144f1
+
+	measure 'Carrier Delay Minutes' = SUM ( 'Flight Leg'[Carrier Delay Min] )
+		formatString: #,##0
+		displayFolder: Delay cause
+		lineageTag: 6cf8c6eb-6732-4903-bf50-7b140052274d
+
+	measure 'Weather Delay Minutes' = SUM ( 'Flight Leg'[Weather Delay Min] )
+		formatString: #,##0
+		displayFolder: Delay cause
+		lineageTag: 85ccf8b2-04eb-4b8b-a5a1-6a6874568718
+
+	measure 'NAS Delay Minutes' = SUM ( 'Flight Leg'[Nas Delay Min] )
+		formatString: #,##0
+		displayFolder: Delay cause
+		lineageTag: 8f12086b-3aeb-437b-8f38-4d4deb840758
+
+	measure 'Security Delay Minutes' = SUM ( 'Flight Leg'[Security Delay Min] )
+		formatString: #,##0
+		displayFolder: Delay cause
+		lineageTag: 60480120-f06c-483c-b7e0-704be32284a3
+
+	measure 'Late Aircraft Delay Minutes' = SUM ( 'Flight Leg'[Late Aircraft Delay Min] )
+		formatString: #,##0
+		displayFolder: Delay cause
+		lineageTag: 08018940-a715-4426-988b-56dab3fb3b33
+
+	measure 'Total Cause Delay Minutes' = [Carrier Delay Minutes] + [Weather Delay Minutes] + [NAS Delay Minutes] + [Security Delay Minutes] + [Late Aircraft Delay Minutes]
+		formatString: #,##0
+		displayFolder: Delay cause
+		lineageTag: 9fe584a0-d429-4348-9fce-11dab300967c
+
+	/// Carrier delay minutes over all delay-cause minutes. Only flights with 15+ min arrival delay carry cause minutes in BTS; flights below that threshold are excluded, not treated as zero -- docs/kpi_spec.md.
+	measure 'Controllable Delay Share' =
+			VAR CarrierMin = CALCULATE ( SUM ( 'Flight Leg'[Carrier Delay Min] ), NOT ISBLANK ( 'Flight Leg'[Carrier Delay Min] ) )
+			VAR AllCauseMin = CALCULATE ( [Total Cause Delay Minutes], NOT ISBLANK ( 'Flight Leg'[Carrier Delay Min] ) )
+			RETURN DIVIDE ( CarrierMin, AllCauseMin )
+		formatString: 0.0%
+		displayFolder: Delay cause
+		lineageTag: 4f2f6312-f78c-4d61-bfe5-4c6be5ff057a
+
+	/// D0 at the hub minus A0 into the hub (docs/kpi_spec.md). Positive means the hub puts flights back on time net of what it received. See A0 %'s description for a known limitation: this returns blank under a per-hub RLS role (not an error, which is an improvement over a USERELATIONSHIP-based version that hard-errors) -- correct for unrestricted/admin use, not yet for RLS-restricted hub leaders.
+	measure 'Hub Throughput Pts' = ( [D0 %] - [A0 %] ) * 100
+		formatString: #,##0.0
+		displayFolder: KPI
+		lineageTag: a8d3a804-bc76-4d97-ae21-ffa0a260fbf9
+
+	measure 'D0 vs Same Period LY Pts' =
+			VAR LY = CALCULATE ( [D0 %], SAMEPERIODLASTYEAR ( 'Date'[Full Date] ) )
+			RETURN IF ( NOT ISBLANK ( LY ), ( [D0 %] - LY ) * 100 )
+		formatString: #,##0.0
+		displayFolder: KPI
+		lineageTag: 23621eb8-5e5b-480b-a81f-6d3019b32a11
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		lineageTag: a39e6706-fd4a-49f3-8481-9cbc78a26d24
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column 'Origin Airport Key'
+		dataType: string
+		isHidden
+		lineageTag: cbe3a45d-79a8-48cd-b241-484ce5bb1157
+		sourceColumn: origin_airport_key
+
+	column 'Dest Airport Key'
+		dataType: string
+		isHidden
+		lineageTag: 10bda645-de6e-4810-9812-e0fd04a51bf6
+		sourceColumn: dest_airport_key
+
+	column 'Marketing Carrier Key'
+		dataType: string
+		isHidden
+		lineageTag: a6bfd608-d4e7-46f3-88bc-60dc61a5a91d
+		sourceColumn: marketing_carrier_key
+
+	column 'Flight Number'
+		dataType: string
+		lineageTag: cbe093de-6d6b-4a86-ae6a-bf1b2a08f2d1
+		sourceColumn: flight_number
+
+	column 'Sched Dep Utc'
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 7c46f360-738e-47da-bb99-5dd6deb6c9ca
+		sourceColumn: sched_dep_utc
+
+	column 'Dep Delay Min'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: 041f346f-a1be-45d1-8839-498efad95eeb
+		sourceColumn: dep_delay_min
+
+	column 'Arr Delay Min'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: 3ba28295-cd7b-4c41-abf6-8dc6450f7dcd
+		sourceColumn: arr_delay_min
+
+	column 'Taxi Out Min'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: 14295852-7745-4007-b1e3-ce2fcd969aac
+		sourceColumn: taxi_out_min
+
+	column 'Crs Elapsed Min'
+		dataType: double
+		isHidden
+		lineageTag: 126a3060-a0f1-40bc-9693-025074bea876
+		sourceColumn: crs_elapsed_min
+
+	column 'Actual Elapsed Min'
+		dataType: double
+		isHidden
+		lineageTag: 2b455cf7-f218-4bde-8317-dc86484c050b
+		sourceColumn: actual_elapsed_min
+
+	column 'Carrier Delay Min'
+		dataType: double
+		isHidden
+		lineageTag: 17936bbf-c100-4040-879c-75db8996c7e1
+		sourceColumn: carrier_delay_min
+
+	column 'Weather Delay Min'
+		dataType: double
+		isHidden
+		lineageTag: 10dad728-2f51-4af3-8baa-c72d6de16dfc
+		sourceColumn: weather_delay_min
+
+	column 'Nas Delay Min'
+		dataType: double
+		isHidden
+		lineageTag: 3f9dd090-2020-46b3-828d-b51eeeb44d8a
+		sourceColumn: nas_delay_min
+
+	column 'Security Delay Min'
+		dataType: double
+		isHidden
+		lineageTag: 2984a673-250f-4196-b569-1f454df7a5a6
+		sourceColumn: security_delay_min
+
+	column 'Late Aircraft Delay Min'
+		dataType: double
+		isHidden
+		lineageTag: 1464d8aa-6abc-4294-87e3-c8f887f5f98d
+		sourceColumn: late_aircraft_delay_min
+
+	column 'Is Cancelled'
+		dataType: boolean
+		isHidden
+		lineageTag: 9c03e65e-b277-4505-93ac-e93a97597395
+		sourceColumn: is_cancelled
+
+	column 'Is Diverted'
+		dataType: boolean
+		isHidden
+		lineageTag: 9f171cc2-a8e0-4cfb-8c7a-507cafa7d63a
+		sourceColumn: is_diverted
+
+	column 'Cancellation Code'
+		dataType: string
+		isHidden
+		lineageTag: 170479a2-7074-4693-adfd-7aa0f679869c
+		sourceColumn: cancellation_code
+
+	partition 'Flight Leg' = entity
+		mode: directLake
+		source
+			entityName: fact_flight_leg
+			schemaName: dbo
+			expressionSource: 'DirectLake - wh_gold'
+
