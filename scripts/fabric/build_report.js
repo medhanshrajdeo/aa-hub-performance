@@ -127,23 +127,33 @@ function withAltText(vco, text) {
   return { ...base, general: [{ properties: { altText: litExpr(`'${safe}'`) } }] };
 }
 
-function staticTitleVCO(text, size = "14D") {
-  return { title: [{ properties: {
-    show: litExpr("true"),
-    text: litExpr(`'${text}'`),
-    fontSize: litExpr(size),
-    alignment: litExpr("'left'"),
-  } }] };
+// subTitle:false kills Power BI's auto-generated "field list" caption
+// under the custom title (e.g. "D0 % and A14 % by Year and Month Name")
+// -- pure clutter once there's already a real, descriptive title, and it
+// was eating ~20px of dead vertical space under every chart.
+function staticTitleVCO(text, size = "15D") {
+  return {
+    title: [{ properties: {
+      show: litExpr("true"),
+      text: litExpr(`'${text}'`),
+      fontSize: litExpr(size),
+      alignment: litExpr("'left'"),
+    } }],
+    subTitle: [{ properties: { show: litExpr("false") } }],
+  };
 }
 
 // Dynamic title bound to a DAX measure instead of a literal string.
-function dynamicTitleVCO(table, measureName, size = "14D") {
-  return { title: [{ properties: {
-    show: litExpr("true"),
-    text: { expr: meas(table, measureName) },
-    fontSize: litExpr(size),
-    alignment: litExpr("'left'"),
-  } }] };
+function dynamicTitleVCO(table, measureName, size = "15D") {
+  return {
+    title: [{ properties: {
+      show: litExpr("true"),
+      text: { expr: meas(table, measureName) },
+      fontSize: litExpr(size),
+      alignment: litExpr("'left'"),
+    } }],
+    subTitle: [{ properties: { show: litExpr("false") } }],
+  };
 }
 
 // ============================================================
@@ -182,8 +192,8 @@ function kpiCard({ name, x, y, z, w, h, table, measureName, label, accent, statu
           topMargin: litExpr("0L"), bottomMargin: litExpr("0L"),
           leftMargin: litExpr("12L"), rightMargin: litExpr("8L"),
         }, selector: { id: "default" } }],
-        value: [{ properties: { fontSize: litExpr("24D"), fontColor: solidLit(accent) }, selector: { id: "default" } }],
-        label: [{ properties: { text: litExpr(`'${label}'`), fontSize: litExpr("10D"), fontColor: solidLit(COLOR.muted) }, selector: { id: "default" } }],
+        value: [{ properties: { fontSize: litExpr("26D"), fontColor: solidLit(accent) }, selector: { id: "default" } }],
+        label: [{ properties: { text: litExpr(`'${label}'`), fontSize: litExpr("11D"), fontColor: solidLit(COLOR.muted) }, selector: { id: "default" } }],
       },
       visualContainerObjects: withAltText({
         background: [{ properties: { show: litExpr("true"), color: solidLit("#FFFFFF"), transparency: litExpr("0D") } }],
@@ -475,7 +485,7 @@ function accentRule({ name, x, y, z, w, h = 4 }) {
   });
 }
 
-function textbox({ name, x, y, z, w, h, text, size = "9pt", italic = true, color = COLOR.muted }) {
+function textbox({ name, x, y, z, w, h, text, size = "10pt", italic = true, color = COLOR.muted }) {
   return visualContainer({
     name, x, y, z, w, h,
     visual: {
@@ -587,7 +597,7 @@ const page1Id = writePage({
   displayName: "Hub Scorecard",
   build: () => {
     const visuals = [];
-    const rows = layout(MARGIN, [{ h: 80 }, { h: 120 }, { h: 280 }, { h: 200 }, { h: 240 }]);
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 100 }, { h: 300 }, { h: 200 }, { h: 240 }]);
     const [titleRow, kpiRow, heroRow, suppRow, detailRow] = rows;
 
     // Title band: dynamic title textbox (navy, AA-red accent rule) + slicers
@@ -686,7 +696,7 @@ const page2Id = writePage({
   filters: [categoricalFilter("Airport", "Airport Key", "'DFW'")],
   build: () => {
     const visuals = [];
-    const rows = layout(MARGIN, [{ h: 80 }, { h: 120 }, { h: 280 }, { h: 200 }, { h: 240 }]);
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 100 }, { h: 300 }, { h: 200 }, { h: 240 }]);
     const [titleRow, kpiRow, heroRow, suppRow, detailRow] = rows;
 
     visuals.push(visualContainer({
@@ -764,7 +774,7 @@ const page3Id = writePage({
   displayName: "Turn Performance",
   build: () => {
     const visuals = [];
-    const rows = layout(MARGIN, [{ h: 80 }, { h: 120 }, { h: 280 }, { h: 200 }, { h: 196 }]);
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 100 }, { h: 300 }, { h: 200 }, { h: 224 }]);
     const [titleRow, kpiRow, heroRow, suppRow, detailRow] = rows;
     const dfwTurnFilter = () => categoricalFilter("Airport", "Airport Key", "'DFW'");
 
@@ -850,7 +860,7 @@ const page4Id = writePage({
   filters: [categoricalFilter("Carrier", "AA Family", "true")],
   build: () => {
     const visuals = [];
-    const rows = layout(MARGIN, [{ h: 80 }, { h: 120 }, { h: 280 }, { h: 200 }, { h: 196 }]);
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 100 }, { h: 300 }, { h: 200 }, { h: 224 }]);
     const [titleRow, kpiRow, heroRow, suppRow, detailRow] = rows;
 
     visuals.push(visualContainer({
@@ -1118,7 +1128,7 @@ const page7Id = writePage({
   },
   build: () => {
     const visuals = [];
-    const rows = layout(MARGIN, [{ h: 100 }, { h: 240 }]);
+    const rows = layout(MARGIN, [{ h: 100 }, { h: 160 }]);
     const [titleRow, kpiRow] = rows;
 
     visuals.push(backButton({ name: visualId(), x: MARGIN, y: titleRow.y + 16, z: 999 }));

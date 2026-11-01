@@ -376,3 +376,14 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   red accent rule, and renamed the theme file (cache-busting) to
   `HubOpsWorkbench-2f91.json`. See
   [ADR 0018](decisions/0018-aa-palette-and-dead-slicer-removal.md).
+- **Typography and spacing pass (2026-11-01):** KPI cards were mostly
+  dead space (24pt value in a 120px card, no vertical centering) and
+  every chart carried a redundant, tiny Power BI auto-subtitle under
+  its real title -- `subTitle.show` was never explicitly set to
+  `false` anywhere. Fixed both, bumped table/axis/legend text 1pt
+  across the theme (new file `HubOpsWorkbench-5a1c.json`), and added
+  theme styling for `lineClusteredColumnComboChart` (it had none before
+  this pass, so the combo charts were silently off-theme). Caught and
+  fixed a real row-overlap regression the bigger table font caused on
+  two pages' detail tables before deploying -- see
+  [ADR 0019](decisions/0019-typography-and-spacing-pass.md).

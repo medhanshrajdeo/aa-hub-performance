@@ -11,7 +11,7 @@
       "type": "SharedResources"
     },
     "customTheme": {
-      "name": "HubOpsWorkbench-2f91.json",
+      "name": "HubOpsWorkbench-5a1c.json",
       "reportVersionAtImport": {
         "visual": "2.11.0",
         "report": "3.4.0",
@@ -46,8 +46,8 @@
       "type": "RegisteredResources",
       "items": [
         {
-          "name": "HubOpsWorkbench-2f91.json",
-          "path": "HubOpsWorkbench-2f91.json",
+          "name": "HubOpsWorkbench-5a1c.json",
+          "path": "HubOpsWorkbench-5a1c.json",
           "type": "CustomTheme"
         }
       ]

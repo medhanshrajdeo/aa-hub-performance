@@ -1,0 +1,161 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "d2c7360aeddd70c5a4fd",
+  "position": {
+    "x": 972,
+    "y": 624,
+    "z": 1031,
+    "height": 280,
+    "width": 916,
+    "tabOrder": 1031
+  },
+  "visual": {
+    "visualType": "lineClusteredColumnComboChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CBP Hour Profile"
+                    }
+                  },
+                  "Property": "Local Hour"
+                }
+              },
+              "queryRef": "CBP Hour Profile.Local Hour",
+              "nativeQueryRef": "Local Hour",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "CBP Hour Profile"
+                        }
+                      },
+                      "Property": "Mean Bts Proxy Intl Arrivals"
+                    }
+                  },
+                  "Function": 1
+                }
+              },
+              "queryRef": "Average(CBP Hour Profile.Mean Bts Proxy Intl Arrivals)",
+              "nativeQueryRef": "Average of Mean Bts Proxy Intl Arrivals"
+            }
+          ]
+        },
+        "Y2": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "CBP Hour Profile"
+                        }
+                      },
+                      "Property": "Mean Cbp Total Passengers"
+                    }
+                  },
+                  "Function": 1
+                }
+              },
+              "queryRef": "Average(CBP Hour Profile.Mean Cbp Total Passengers)",
+              "nativeQueryRef": "Average of Mean Cbp Total Passengers"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "legend": [
+        {
+          "properties": {
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Top'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Cross-Check: BTS-Proxy International Arrivals vs. CBP Passenger Volume by Hour'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "15D"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Cross-Check: BTS-Proxy International Arrivals vs. CBP Passenger Volume by Hour'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
