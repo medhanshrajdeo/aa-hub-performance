@@ -237,3 +237,20 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   scope), so the other ~364 airports' station-hours legitimately have no
   weather data. Spot-checked DFW specifically: all 10 sampled rows have
   a real (non-null) severity score.
+
+- `nb_analysis_export` (id `2b13f8a9-379a-4e0e-8d5f-f937fafa1d99`) --
+  not part of the medallion pipeline itself; pulls two small,
+  pre-aggregated CSVs out of `wh_gold` for signature analyses #3 and #4
+  (`docs/analysis/turn_cliff_agg.csv`, `docs/analysis/station_day_d0_weather.csv`),
+  so the aggregation over `fact_aircraft_turn`'s 21M rows and
+  `fact_flight_leg`'s 27.8M rows happens in T-SQL where the data already
+  lives, and only the small analysis-ready result leaves Fabric (same
+  reasoning as analysis #1/#2's local prototypes, just sourced from the
+  now-validated gold tables instead of re-downloading raw BTS). Must run
+  after `nb_gold_build`, `nb_gold_turns`, `nb_silver_weather`. Ran clean:
+  1,086 fleet x turn-bucket rows (headline: DFW turns with an on-time
+  inbound still only hit 70.3% outbound D0, vs 35.0% for delayed-inbound
+  turns), 8,040 station-days (99.9% weather coverage). Both CSVs
+  downloaded via the OneLake DFS API and analyzed locally --
+  `analysis/dfw_turn_cliff.py` and `analysis/dfw_weather_scorecard.py` --
+  see the README's Findings #3 and #4.

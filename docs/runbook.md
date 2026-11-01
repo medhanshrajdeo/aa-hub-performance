@@ -134,8 +134,8 @@ default.
   Authoring MCP tool's EULA must be reviewed and accepted by a person,
   never by an agent automatically. Needs the project owner's explicit
   go-ahead before this phase can start.
-- Signature analyses #3 (turn-length cliff) and #4 (weather-adjusted
-  scorecard) -- `fact_aircraft_turn` and `fact_station_hour` now exist
-  in gold to support them, but they haven't been written yet.
+- Signature analyses #5 (does chasing D0 buy A14?) and #6 (passenger
+  flow / customer outcomes) -- the other four are done; see the
+  README's Findings section.
 - Production hardening (deployment pipeline, Variable Library, alerts) --
   Phase 8, not started.
