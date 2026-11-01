@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "d62ff553afe27e8a3b3a",
+  "position": {
+    "x": 32,
+    "y": 1036,
+    "z": 1041,
+    "height": 36,
+    "width": 1856,
+    "tabOrder": 1041
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Cause minutes by hour and bank (from the original plan) aren't live here: Direct Lake tables can't carry a calculated hour-of-day column (ADR 0014), and dim_bank isn't joined to fact_flight_leg (a two-month prototype, not a continuous calendar). Shown by month and station instead.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#605E5C",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

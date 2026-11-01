@@ -1,4 +1,4 @@
-// Generates rpt_hubops's 7 report pages (6 visible + 1 hidden drillthrough
+// Generates rpt_hubops's 8 report pages (7 visible + 1 hidden drillthrough
 // target) (PBIR) on top of sm_hubops, per the
 // "Industrial Dense / Analyst Workbench" design identity (see
 // fabric/rpt_hubops.Report/StaticResources/RegisteredResources/HubOpsWorkbench-*.json):
@@ -1162,12 +1162,83 @@ const page7Id = writePage({
   },
 });
 
+// ============================================================
+// Page 8: Data Health -- Phase 8's "page 8 shows green for all sources"
+// done-when check. Reads meta.load_log (via the Load Log table), a
+// verification sweep that COUNT(*)s every real wh_gold table -- not a
+// live recompute of the full reconciliation (see ADR 0020).
+// ============================================================
+const page8Id = writePage({
+  displayName: "Data Health",
+  build: () => {
+    const visuals = [];
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 140 }, { h: 320 }, { h: 280 }]);
+    const [titleRow, kpiRow, heroRow, detailRow] = rows;
+
+    visuals.push(visualContainer({
+      name: visualId(), x: MARGIN, y: titleRow.y, z: 1000, w: 1600, h: titleRow.h,
+      visual: {
+        visualType: "textbox",
+        objects: {
+          general: [{ properties: { paragraphs: [{ textRuns: [{
+            value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
+          }] }] } }],
+          values: [{ properties: { expr: { expr: meas("Load Log", "Data Health Title") } }, selector: { id: "pageTitle" } }],
+        },
+      },
+    }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
+
+    const kc = cols(4, CONTENT_W, MARGIN);
+    visuals.push(kpiCard({ name: visualId(), x: kc[0].x, y: kpiRow.y, z: 1010, w: kc[0].w, h: kpiRow.h, table: "Load Log", measureName: "Sources Tracked", label: "Real Sources Tracked", accent: COLOR.steelBlue }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[1].x, y: kpiRow.y, z: 1011, w: kc[1].w, h: kpiRow.h, table: "Load Log", measureName: "Checks OK Summary", label: "Checks OK (of Tracked)", accent: COLOR.forest, statusConditional: { table: "Load Log", measure: "Health Status Score" } }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[2].x, y: kpiRow.y, z: 1012, w: kc[2].w, h: kpiRow.h, table: "Load Log", measureName: "Total Rows Tracked", label: "Total Rows Tracked, All Gold Tables", accent: COLOR.slate }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[3].x, y: kpiRow.y, z: 1013, w: kc[3].w, h: kpiRow.h, table: "Load Log", measureName: "Last Checked Summary", label: "Last Health Sweep (UTC)", accent: COLOR.gold }));
+
+    visuals.push(barChart({
+      name: visualId(), x: MARGIN, y: heroRow.y, z: 1020, w: CONTENT_W, h: heroRow.h,
+      type: "barChart",
+      title: "Rows Tracked by Source",
+      table: "Load Log", category: "Source",
+      yMeasures: [{ table: "Load Log", property: "Total Rows Tracked" }],
+      sort: { table: "Load Log", property: "Total Rows Tracked", direction: "Descending" },
+      gradient: { min: COLOR.steelBlueTint, max: COLOR.steelBlue },
+    }));
+
+    visuals.push(tableExVisual({
+      name: visualId(), x: MARGIN, y: detailRow.y, z: 1030, w: CONTENT_W, h: detailRow.h,
+      title: "Latest Health Sweep -- Every Real Table in wh_gold",
+      columns: [
+        { table: "Load Log", property: "Source" },
+        { table: "Load Log", property: "Table Name" },
+        { table: "Load Log", property: "Row Count" },
+        { table: "Load Log", property: "Status" },
+        { table: "Load Log", property: "Checked At Utc" },
+        { table: "Load Log", property: "Notes" },
+      ],
+      sort: { table: "Load Log", property: "Source", direction: "Ascending" },
+      dataBarOn: { table: "Load Log", property: "Row Count" },
+    }));
+
+    visuals.push(textbox({
+      name: visualId(), x: MARGIN, y: detailRow.y + detailRow.h + 4, z: 1040, w: CONTENT_W, h: 36,
+      text: "This is a row-count/freshness sweep (fabric/nb_meta_health.Notebook), not a live recompute of the full "
+        + "bronze-vs-gold reconciliation -- that was done once in full (ADR 0013, confirmed max D0 diff 0.0000924 "
+        + "across all 44 months) and is noted as a fixed row above (source = reconciliation). Re-run nb_meta_health "
+        + "to refresh everything else.",
+    }));
+
+    return visuals;
+  },
+});
+
 // ---- pages.json ----
-const allPageIds = [page1Id, page2Id, page3Id, page4Id, page5Id, page6Id, page7Id];
+const allPageIds = [page1Id, page2Id, page3Id, page4Id, page5Id, page6Id, page8Id, page7Id];
 const pagesJsonPath = path.join(PAGES_DIR, "pages.json");
 const pagesJson = JSON.parse(fs.readFileSync(pagesJsonPath, "utf8"));
 pagesJson.pageOrder = allPageIds;
 pagesJson.activePageName = allPageIds[0];
 fs.writeFileSync(pagesJsonPath, JSON.stringify(pagesJson, null, 2));
 
-console.log(JSON.stringify({ page1Id, page2Id, page3Id, page4Id, page5Id, page6Id, page7Id }, null, 2));
+console.log(JSON.stringify({ page1Id, page2Id, page3Id, page4Id, page5Id, page6Id, page7Id, page8Id }, null, 2));

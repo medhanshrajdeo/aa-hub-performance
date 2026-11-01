@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "5c59aa98ad69cbe5a8cd",
+  "position": {
+    "x": 32,
+    "y": 928,
+    "z": 1040,
+    "height": 36,
+    "width": 1856,
+    "tabOrder": 1040
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "This is a row-count/freshness sweep (fabric/nb_meta_health.Notebook), not a live recompute of the full bronze-vs-gold reconciliation -- that was done once in full (ADR 0013, confirmed max D0 diff 0.0000924 across all 44 months) and is noted as a fixed row above (source = reconciliation). Re-run nb_meta_health to refresh everything else.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#605E5C",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

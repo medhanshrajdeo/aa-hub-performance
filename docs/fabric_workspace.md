@@ -281,37 +281,52 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   against `sm_hubops`'s DAX measures for Phase 5's "done when". All
   three matched to 8+ significant figures.
 
+- `nb_meta_health` (id `3244152a-497f-41a1-b604-6278a025e734`) --
+  Phase 8 data-health sweep: `COUNT(*)`s every real `wh_gold` table and
+  writes source/row_count/status/checked_at_utc to `dbo.load_log`
+  (re-runnable snapshot, not a per-load history -- see
+  [ADR 0020](decisions/0020-phase-8-hardening-scope.md)). First
+  attempt used a custom `meta` schema and hung the Direct Lake table
+  creation indefinitely; moved to `dbo` (matching every other gold
+  table) and it worked immediately. Confirmed: 18 tables swept, all
+  `OK`, 54.5M rows tracked.
+
 ## Semantic model
 
 - `sm_hubops` (id `9fc47519-9010-455f-977f-d201c18f94e3`) -- Direct
   Lake over `wh_gold`, built via the `powerbi-modeling-mcp` MCP tool
-  (EULA reviewed and accepted by the project owner first). 9 tables
-  (`Date`, `Airport`, `Airport (Dest)`, `Carrier`, `Bank`, `Flight Leg`,
-  `Aircraft Turn`, `Station Hour`, `Station Day Scorecard`), 9
-  relationships, 25 measures matching `docs/kpi_spec.md` exactly (23
-  from the initial build plus `Outbound D0 %` and `Late Aircraft Delay
-  Share`, added for the report's Turn Performance and Delay Root Cause
-  pages), 6 per-hub RLS roles (`Hub - DFW/CLT/MIA/ORD/PHX/PHL`, filtering
-  `Airport`; role *membership* -- which real users belong to which role
-  -- is a Portal action, not done here or by this tool). TMDL exported
-  to `fabric/sm_hubops.SemanticModel/`. Three real Direct Lake/RLS
+  (EULA reviewed and accepted by the project owner first). 18 tables
+  as of 2026-11-01 (core: `Date`, `Airport`, `Airport (Dest)`, `Carrier`,
+  `Bank`, `Flight Leg`, `Aircraft Turn`, `Station Hour`, `Station Day
+  Scorecard`; added across later passes: `Rebank Effect`, `Rebank Event
+  Study`, `Checkpoint Hour`, `CBP Wait Hour`, `TSA Departure Hour
+  Profile`, `CBP Hour Profile`, `Load Log`; plus 2 field-parameter
+  tables, `Hub KPI` and `Turn Metric`, model objects only -- no report
+  visual is pre-wired to them, see ADR 0018), ~45 measures matching
+  `docs/kpi_spec.md` exactly where KPI math is involved, 6 per-hub RLS
+  roles (`Hub - DFW/CLT/MIA/ORD/PHX/PHL`, filtering `Airport`; role
+  *membership* -- which real users belong to which role -- is a Portal
+  action, not done here or by this tool). TMDL export to
+  `fabric/sm_hubops.SemanticModel/` is stale (last done before the
+  Rebank/Passenger-Flow/Load-Log tables existed) -- still pending, see
+  ADR 0017's consequences section. Three real Direct Lake/RLS
   quirks hit and resolved (or honestly documented as a known
   limitation) building it -- see
   [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md).
 
 ## Report
 
-- `rpt_hubops` (id `d8404b97-b98a-4228-97cf-3b86824de65c`) -- 7 pages,
-  6 visible (Hub Scorecard, Bank Performance, Turn Performance, Delay
-  Root Cause, Rebank Impact, Passenger Flow) + 1 hidden drillthrough
-  target (Fleet Turn Detail, off Turn Performance's fleet charts) on
-  `sm_hubops`, built with the `powerbi-report-authoring` CLI
+- `rpt_hubops` (id `d8404b97-b98a-4228-97cf-3b86824de65c`) -- 8 pages,
+  7 visible (Hub Scorecard, Bank Performance, Turn Performance, Delay
+  Root Cause, Rebank Impact, Passenger Flow, Data Health) + 1 hidden
+  drillthrough target (Fleet Turn Detail, off Turn Performance's fleet
+  charts) on `sm_hubops`, built with the `powerbi-report-authoring` CLI
   (`@microsoft/powerbi-report-authoring-cli`) via a deterministic Node
   generator (`scripts/fabric/build_report.js`) rather than hand-edited
   PBIR, per the skill's own guidance for full-report builds. Verified
   against live data with `powerbi-report-author preview --host service`
   and, once the user opened the pbip in Power BI Desktop, with the
-  `powerbi-desktop` bridge CLI directly -- all 7 pages render clean,
+  `powerbi-desktop` bridge CLI directly -- all pages render clean,
   screenshots reviewed in both. `definition.pbir` binds via
   `byConnection` (a `byPath` reference to the co-located
   `sm_hubops.SemanticModel` folder validates locally but fails Fabric's
@@ -387,3 +402,20 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   fixed a real row-overlap regression the bigger table font caused on
   two pages' detail tables before deploying -- see
   [ADR 0019](decisions/0019-typography-and-spacing-pass.md).
+- **Phase 8, achievable subset (2026-11-01):** `sql/adhoc/` (6 SSMS
+  queries), `dbo.load_log` + `fabric/nb_meta_health.Notebook` (a
+  row-count/freshness verification sweep across every real gold
+  table), and an 8th report page, Data Health, reading from it. Hit
+  two real bugs: a malformed Direct Lake table-create request (nested
+  `partitions`/`source` instead of this tool's actual flat
+  `entityName`/`schemaName`/`expressionSourceName` shape) that hung
+  the modeling connection indefinitely rather than erroring, requiring
+  a fresh reconnect to even discover the table had never been created;
+  and `CALCULATE(SUM(X), Table[Col] <> Y)` silently replacing (not
+  intersecting with) a chart's own filter on that same column, making
+  every bar in "Rows Tracked by Source" show the same grand total until
+  fixed with `KEEPFILTERS`. Git integration, a dev/prod deployment
+  pipeline, and orchestration + email alerts remain genuinely blocked
+  on tenant/workspace/mailbox access this project doesn't have -- see
+  [ADR 0020](decisions/0020-phase-8-hardening-scope.md) for the full
+  breakdown of what's done vs. blocked and why.

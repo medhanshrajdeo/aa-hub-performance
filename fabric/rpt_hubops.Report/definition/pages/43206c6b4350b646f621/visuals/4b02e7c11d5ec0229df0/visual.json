@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "4b02e7c11d5ec0229df0",
+  "position": {
+    "x": 32,
+    "y": 320,
+    "z": 1020,
+    "height": 36,
+    "width": 1856,
+    "tabOrder": 1020
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Drillthrough target: right-click a fleet bar on Turn Performance and choose \"Drill through\" to land here filtered to that fleet. Use the back button (top-left) to return.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#605E5C",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

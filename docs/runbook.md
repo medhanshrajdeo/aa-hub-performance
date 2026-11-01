@@ -139,5 +139,11 @@ default.
   figure -- a real, documented limitation of filtering RLS on the
   origin-side dimension; see
   [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md).
-- Production hardening (deployment pipeline, Variable Library, alerts) --
-  Phase 8, not started.
+- Production hardening: `sql/adhoc/`, the `dbo.load_log` data-health
+  sweep, and the Data Health report page are done (2026-11-01, see
+  [ADR 0020](decisions/0020-phase-8-hardening-scope.md)). Genuinely
+  blocked, not just undone: Fabric Git integration to GitHub (tenant
+  setting off), a dev/prod deployment pipeline (needs that same Git
+  integration or an Azure DevOps org that doesn't exist), and
+  orchestration + Outlook failure alerts (the alert half needs a real
+  O365 mailbox connection, not something to wire up unilaterally).

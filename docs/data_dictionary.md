@@ -277,10 +277,53 @@ for the loading notebook's `fast_executemany` fix.
 Loaded from `docs/analysis/station_day_scorecard.csv`, the real output
 of `analysis/dfw_weather_scorecard.py`.
 
+### `fact_tsa_departure_hour_profile` -- 24 rows
+
+Hourly-mean profile for the Passenger Flow report page, loaded
+2026-11-01 from the real output of signature analysis #6
+(`analysis/dfw_passenger_flow.py`) -- not a live aggregation of
+`fact_checkpoint_hour`, a pre-computed small table built the same way
+`fact_station_day_scorecard` is (gold tables written by analysis
+notebooks, not just by `nb_gold_build`).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `local_hour` | INT | DFW-local hour, 0-23 |
+| `mean_passengers_screened` | FLOAT | Mean across the analysis window, all DFW TSA checkpoints |
+| `mean_scheduled_departures` | FLOAT | Mean AA scheduled departures that local hour |
+
+### `fact_cbp_hour_profile` -- 24 rows
+
+Same pattern, CBP side -- also loaded 2026-11-01.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `local_hour` | INT | DFW-local hour, 0-23 |
+| `mean_avg_wait_us_min`, `mean_avg_wait_non_us_min` | FLOAT NULL-able | Mean of `fact_cbp_wait_hour`'s own hourly averages |
+| `mean_cbp_flight_count`, `mean_cbp_total_passengers` | FLOAT NULL-able | CBP's own volume counts, meaned by hour |
+| `mean_bts_proxy_intl_arrivals` | FLOAT | BTS-derived international-arrival proxy (origin outside the US, converted to DFW local time) -- an independent cross-check volume, not a CBP figure |
+
+### `meta.load_log` -- 19 rows per sweep
+
+Not part of the star schema -- a Phase 8 data-health table, in its own
+`meta` schema, written by `fabric/nb_meta_health.Notebook`'s
+verification sweep (one `COUNT(*)` per real gold table, plus one fixed
+row recording the 2026-10-31 full bronze-vs-gold reconciliation). See
+[ADR 0020](decisions/0020-phase-8-hardening-scope.md).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `source` | VARCHAR(20) | One of the 5 real sources, or `derived`/`reference`/`analysis`/`reconciliation` for tables built from more than one source or authored locally |
+| `table_name` | VARCHAR(100) | |
+| `row_count` | BIGINT | |
+| `checked_at_utc` | DATETIME2(6) | Sweep timestamp -- not a per-load history, a re-runnable snapshot; old sweeps accumulate rather than get overwritten |
+| `status` | VARCHAR(20) | `OK` / `EMPTY` / `MISSING` |
+| `notes` | VARCHAR(500) | NULL except on the reconciliation row |
+
 ## Semantic model
 
 `sm_hubops` (Direct Lake over `wh_gold`) is documented separately in
 [`docs/fabric_workspace.md`](fabric_workspace.md#semantic-model) --
-its 23 measures match this file's KPI math exactly (`docs/kpi_spec.md`
+its measures match this file's KPI math exactly (`docs/kpi_spec.md`
 is the formula source of truth for both the Warehouse and the semantic
 model).

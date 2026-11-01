@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "nb_meta_health",
+    "description": "Phase 8 data-health sweep: COUNT(*)s every real wh_gold table and records source/row_count/status/checked_at_utc to dbo.load_log. Re-run to refresh the Data Health report page."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "00000000-0000-0000-0000-000000000000"
+  }
+}
