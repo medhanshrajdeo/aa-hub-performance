@@ -288,12 +288,43 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   (EULA reviewed and accepted by the project owner first). 9 tables
   (`Date`, `Airport`, `Airport (Dest)`, `Carrier`, `Bank`, `Flight Leg`,
   `Aircraft Turn`, `Station Hour`, `Station Day Scorecard`), 9
-  relationships, 23 measures matching `docs/kpi_spec.md` exactly, 6
-  per-hub RLS roles (`Hub - DFW/CLT/MIA/ORD/PHX/PHL`, filtering
+  relationships, 25 measures matching `docs/kpi_spec.md` exactly (23
+  from the initial build plus `Outbound D0 %` and `Late Aircraft Delay
+  Share`, added for the report's Turn Performance and Delay Root Cause
+  pages), 6 per-hub RLS roles (`Hub - DFW/CLT/MIA/ORD/PHX/PHL`, filtering
   `Airport`; role *membership* -- which real users belong to which role
   -- is a Portal action, not done here or by this tool). TMDL exported
   to `fabric/sm_hubops.SemanticModel/`. Three real Direct Lake/RLS
   quirks hit and resolved (or honestly documented as a known
   limitation) building it -- see
   [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md).
-  Report pages (1-4) are not yet built on top of it.
+
+## Report
+
+- `rpt_hubops` (id `d8404b97-b98a-4228-97cf-3b86824de65c`) -- 4 pages
+  (Hub Scorecard, Bank Performance, Turn Performance, Delay Root Cause)
+  on `sm_hubops`, built with the `powerbi-report-authoring` CLI
+  (`@microsoft/powerbi-report-authoring-cli`) via a deterministic Node
+  generator (`scripts/fabric/build_report.js`) rather than hand-edited
+  PBIR, per the skill's own guidance for full-report builds. Verified
+  against live data with `powerbi-report-author preview --host service`
+  (no Power BI Desktop available in this environment) -- all 4 pages
+  render clean, screenshots reviewed. `definition.pbir` binds via
+  `byConnection` (a `byPath` reference to the co-located
+  `sm_hubops.SemanticModel` folder validates locally but fails Fabric's
+  import with *"Fabric REST API only supports byConnection
+  references"* -- real error, not assumed) with the connection string's
+  `semanticModelId` parameter set to `sm_hubops`'s item GUID (also
+  required -- a bare workspace/dataset-name connection string fails
+  import with `InvalidConnectionInformation`). Deployed via `az rest
+  POST /v1/workspaces/{id}/reports` using the CLI's `pack --mode
+  create` payload, the same create/poll pattern as every other item in
+  this project.
+- Two scope simplifications versus the plan's literal page descriptions,
+  both because Direct Lake tables can't carry a calculated column (ADR
+  0014) and `dim_bank` isn't joined to `fact_flight_leg` (a two-month
+  prototype, not a continuous calendar) -- documented on the pages
+  themselves via a textbox, not silently dropped: Bank Performance
+  shows bank *volume* waves + a DFW pre/post-rebank D0/A14 comparison
+  rather than delay-by-bank; Delay Root Cause shows cause-minutes/shares
+  by month rather than by hour and bank.

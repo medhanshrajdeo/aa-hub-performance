@@ -129,14 +129,15 @@ default.
 
 ## Not yet built
 
-- **Phase 5's Power BI report (pages 1-4)**: the Direct Lake semantic
-  model half of Phase 5 is done -- `sm_hubops`, live in the
-  `AmericanAirlines` workspace, RLS by hub, 23 measures matching
-  `docs/kpi_spec.md` exactly, D0/A14/CF verified against SQL to the
-  decimal for 3 test slices (see
-  [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md) and
-  `docs/fabric_workspace.md`'s "Semantic model" section). The actual
-  report pages (visuals, layout, RLS membership assignment -- a Portal
-  action this tool doesn't do) are not built yet.
+- **RLS role membership**: 6 per-hub roles exist on `sm_hubops` with
+  real filter expressions, but assigning actual users/groups to each
+  role is a Portal action -- out of scope for every tool used to build
+  this project (the modeling MCP's own security-role skill explicitly
+  refuses to manage role membership).
+- **Hub Throughput Pts under RLS**: returns blank (not an error) for a
+  per-hub-restricted viewer rather than the correct inbound-arrival
+  figure -- a real, documented limitation of filtering RLS on the
+  origin-side dimension; see
+  [ADR 0014](decisions/0014-direct-lake-semantic-model-quirks.md).
 - Production hardening (deployment pipeline, Variable Library, alerts) --
   Phase 8, not started.

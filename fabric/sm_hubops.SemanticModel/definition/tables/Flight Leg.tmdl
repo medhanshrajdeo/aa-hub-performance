@@ -130,6 +130,14 @@ table 'Flight Leg'
 		displayFolder: KPI
 		lineageTag: 23621eb8-5e5b-480b-a81f-6d3019b32a11
 
+	/// Late-aircraft delay minutes over all delay-cause minutes -- same 15+min-arrival-delay population restriction as Controllable Delay Share.
+	measure 'Late Aircraft Delay Share' =
+			VAR LateAircraftMin = CALCULATE ( SUM ( 'Flight Leg'[Late Aircraft Delay Min] ), NOT ISBLANK ( 'Flight Leg'[Carrier Delay Min] ) )
+			RETURN DIVIDE ( LateAircraftMin, [Total Cause Delay Minutes] )
+		formatString: 0.0%
+		displayFolder: Delay cause
+		lineageTag: 051d4e73-837c-45f1-9b17-ef9a222dd9ee
+
 	column 'Date Key'
 		dataType: int64
 		isHidden

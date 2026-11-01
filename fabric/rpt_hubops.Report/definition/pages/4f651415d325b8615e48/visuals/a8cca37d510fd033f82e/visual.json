@@ -1,0 +1,178 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "a8cca37d510fd033f82e",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 1000,
+    "height": 320,
+    "width": 1240,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "columnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Date"
+                    }
+                  },
+                  "Property": "Year"
+                }
+              },
+              "queryRef": "Date.Year",
+              "nativeQueryRef": "Year",
+              "active": true
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Date"
+                    }
+                  },
+                  "Property": "Month Name"
+                }
+              },
+              "queryRef": "Date.Month Name",
+              "nativeQueryRef": "Month Name",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Flight Leg"
+                    }
+                  },
+                  "Property": "Carrier Delay Minutes"
+                }
+              },
+              "queryRef": "Flight Leg.Carrier Delay Minutes",
+              "nativeQueryRef": "Carrier Delay Minutes"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Flight Leg"
+                    }
+                  },
+                  "Property": "Weather Delay Minutes"
+                }
+              },
+              "queryRef": "Flight Leg.Weather Delay Minutes",
+              "nativeQueryRef": "Weather Delay Minutes"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Flight Leg"
+                    }
+                  },
+                  "Property": "NAS Delay Minutes"
+                }
+              },
+              "queryRef": "Flight Leg.NAS Delay Minutes",
+              "nativeQueryRef": "NAS Delay Minutes"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Flight Leg"
+                    }
+                  },
+                  "Property": "Security Delay Minutes"
+                }
+              },
+              "queryRef": "Flight Leg.Security Delay Minutes",
+              "nativeQueryRef": "Security Delay Minutes"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Flight Leg"
+                    }
+                  },
+                  "Property": "Late Aircraft Delay Minutes"
+                }
+              },
+              "queryRef": "Flight Leg.Late Aircraft Delay Minutes",
+              "nativeQueryRef": "Late Aircraft Delay Minutes"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "legend": [
+        {
+          "properties": {
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Top'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Delay-Cause Minutes by Month (AA Family, 15+ min Arrival Delays Only)'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

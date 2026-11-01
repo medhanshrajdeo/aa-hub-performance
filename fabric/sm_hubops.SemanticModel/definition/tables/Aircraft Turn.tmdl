@@ -13,6 +13,14 @@ table 'Aircraft Turn'
 		displayFolder: Volume
 		lineageTag: cae7420e-9466-40db-a943-e23f6c6bdff7
 
+	/// D0 rate for the outbound leg of a paired turn. Used for the turn-length-cliff view (signature analysis #3) -- bucket by Scheduled Turn Min per Fleet Family to see where D0 falls off.
+	measure 'Outbound D0 %' =
+			VAR OnTime = CALCULATE ( COUNTROWS ( 'Aircraft Turn' ), 'Aircraft Turn'[Outbound Dep Delay Min] <= 0 )
+			RETURN DIVIDE ( OnTime, COUNTROWS ( 'Aircraft Turn' ) )
+		formatString: 0.0%
+		displayFolder: KPI
+		lineageTag: bd07bd9d-4fd6-4fd3-b2f9-46ecd5d45599
+
 	column Station
 		dataType: string
 		isHidden
