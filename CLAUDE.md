@@ -42,7 +42,7 @@ Five real sources carry the whole project.
   touching BTS hhmm fields, airport local time, or UTC conversion goes
   through `src/hubops/bts_times.py` and `src/hubops/airports.py` -- don't
   re-derive ad hoc offset math in a notebook.
-- **No synthetic data.** Every row traces to one of the seven sources in the
+- **No synthetic data.** Every row traces to one of the five sources in the
   plan. If a source isn't available yet, the analysis waits or is marked
   partial -- it doesn't get backfilled with made-up numbers.
 
