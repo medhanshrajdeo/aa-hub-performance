@@ -119,7 +119,7 @@ RETURN DIVIDE ( OnTime, Operated )
 Hub Throughput pts =
 VAR D0 = [D0 %]
 VAR A0 =
-    CALCULATE ( [A0 %], USERELATIONSHIP ( fact_flight_leg[dest_key], dim_airport[airport_key] ) )
+    CALCULATE ( [A0 %], USERELATIONSHIP ( fact_flight_leg[dest_airport_key], dim_airport[airport_key] ) )
 RETURN ( D0 - A0 ) * 100
 
 D0 vs Same Period LY pts =

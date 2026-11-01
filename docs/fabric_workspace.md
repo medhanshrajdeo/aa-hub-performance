@@ -202,3 +202,38 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   `minutes_recovered = 279 - 609 = -330`, exactly matching the stored
   value. This also closes Phase 2's remaining "done when" item (20
   hand-checked DFW turns pairing correctly).
+
+- `nb_silver_weather` (id `d72d09da-795c-4fc8-a209-b55a8fcd370b`) --
+  Phase 4/6: parses `lh_bronze.weather_metar_raw`'s raw METAR text into
+  the four severity signals (thunderstorm, ceiling <1000ft, visibility
+  <3mi, gusts >30kt), same scoring as the tested `hubops.metar` module,
+  reimplemented inline via `mapInPandas` (METAR token parsing is
+  sequential/stateful, doesn't vectorize into Spark SQL). Buckets to
+  station + UTC date + UTC hour, writes
+  `lh_silver.weather_station_hour_severity`. Ran clean: 192,485 raw
+  observations parsed, 192,462 station-hours written across the 6 AA
+  hubs (~32,000 hours each), severity distribution sane (181,026 at
+  score 0, max severity 4 observed at DFW and PHX).
+
+- `nb_gold_station_hour` (id `c51d3127-651f-4d0d-9e8c-3426104e7949`) --
+  `fact_station_hour`, "the join point for weather and passenger flow"
+  per the plan. Grain is station + UTC date + UTC hour, deliberately
+  derived from `sched_dep_utc`'s own UTC components rather than
+  `fact_flight_leg`'s existing `date_key` column -- that column is
+  anchored to `FlightDate` (the scheduled departure's ORIGIN-LOCAL date
+  per ADR 0010), and pairing a locally-anchored date with a UTC hour
+  would misalign the two by the origin's UTC offset, the same class of
+  bug ADR 0010 already caught once. Must run after `nb_gold_build` and
+  `nb_silver_weather`. **Scope cut, documented rather than silently
+  skipped**: TSA throughput is NOT joined into this table -- TSA's
+  `hour` column is station-LOCAL, while this table is UTC, and doing
+  that conversion correctly needs the same DST-aware local/UTC logic
+  `nb_silver_flights` already took two real bug-fix rounds to get right;
+  not repeating that blind. `fact_checkpoint_hour` remains available
+  standalone for anything that doesn't need it joined here. Ran clean:
+  4,071,389 station-hour rows across ~370 origin airports; only 3.68%
+  (149,829 rows) got a weather match, which is expected, not a bug --
+  weather was only ever sourced for AA's 6 hub stations (`nb_bronze_weather`'s
+  scope), so the other ~364 airports' station-hours legitimately have no
+  weather data. Spot-checked DFW specifically: all 10 sampled rows have
+  a real (non-null) severity score.
