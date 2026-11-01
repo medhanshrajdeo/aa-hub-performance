@@ -1,11 +1,12 @@
-"""Build nb_analysis_export: pulls two compact, pre-aggregated CSVs out
-of wh_gold for signature analyses #3 and #4 (planning/project-plan.md's
+"""Build nb_analysis_export: pulls compact, pre-aggregated CSVs out of
+wh_gold for signature analyses #3-#6 (planning/project-plan.md's
 "Signature analyses" section) -- aggregation happens in T-SQL where the
 data already lives, so only small, analysis-ready tables need to leave
 Fabric. The actual statistical work (finding the turn-length cliff,
-fitting the weather/volume expected-D0 model) happens locally in Python
-afterward, matching the pattern already proven by
-analysis/dfw_bank_reconstruction.py and analysis/dfw_rebank_diffindiff.py.
+fitting the weather/volume expected-D0 model, the D0-vs-A14 tradeoff,
+the TSA/CBP lag) happens locally in Python afterward, matching the
+pattern already proven by analysis/dfw_bank_reconstruction.py and
+analysis/dfw_rebank_diffindiff.py.
 
 1. turn_cliff_agg.csv (analysis #3, "split station-caused from
    inbound-caused delay"): fact_aircraft_turn at DFW, filtered to
@@ -22,6 +23,27 @@ analysis/dfw_bank_reconstruction.py and analysis/dfw_rebank_diffindiff.py.
    6 AA hub stations (the only ones with weather coverage), joined to
    the day's worst (max) weather severity from
    weather_station_hour_severity.
+3. d0_a14_tradeoff_agg.csv (analysis #5, "does chasing D0 buy A14?"):
+   fact_flight_leg joined to fact_station_hour (already has
+   weather_severity_score per station/UTC-hour -- reuses that join
+   rather than re-deriving it), grouped by origin, dest, a dep-delay
+   bucket (exactly 0 vs 1-5 min late) and weather severity, for the 6 AA
+   hub stations. Restricted to on-time-or-slightly-late departures only
+   (0-5 min) -- that's the tradeoff window the plan asks about.
+4. tsa_dfw_hourly.csv, dfw_station_hour.csv, cbp_dfw_hourly.csv,
+   dfw_intl_arrivals_hourly.csv (analysis #6, "passenger flow"): DFW-only
+   exports for TSA checkpoint throughput (station-local hour, TSA's own
+   convention), scheduled departures (UTC hour, from fact_station_hour,
+   reused as-is), CBP Terminal D wait times (station-local HourRange,
+   CBP's own convention -- see contracts/cbp_airport_wait_times.yaml),
+   and international arrival counts (UTC hour, origin airport's
+   dim_airport.iso_region outside the US as the international proxy).
+   Local-hour alignment across these (TSA/CBP are local, fact_station_hour
+   is UTC) happens in Python via zoneinfo, not ad hoc T-SQL offset math --
+   same rule CLAUDE.md sets for src/hubops/bts_times.py and
+   src/hubops/airports.py. The denied-boardings/bag/wheelchair peer
+   comparison from the plan's original analysis #6 is dropped -- that's
+   DOT Air Travel Consumer Report data, scoped out by ADR 0012.
 
 Must run after nb_gold_build, nb_gold_turns, and nb_silver_weather.
 
@@ -164,7 +186,108 @@ except Exception as e:
     raise
 '''
 
-CELLS = [CELL_0_CONNECT, CELL_1_TURN_CLIFF, CELL_2_STATION_DAY]
+CELL_3_D0_A14_TRADEOFF = '''try:
+    cursor.execute("""
+        SELECT
+            f.origin_airport_key AS station,
+            f.dest_airport_key AS dest,
+            CASE WHEN f.dep_delay_min = 0 THEN '0' ELSE '1_5' END AS dep_bucket,
+            sh.weather_severity_score,
+            COUNT(*) AS n,
+            SUM(CASE WHEN f.is_a14 = 1 THEN 1 ELSE 0 END) AS n_a14
+        FROM dbo.fact_flight_leg f
+        JOIN dbo.fact_station_hour sh
+          ON sh.station = f.origin_airport_key
+         AND sh.date_key = CAST(FORMAT(f.sched_dep_utc, 'yyyyMMdd') AS INT)
+         AND sh.hour24 = DATEPART(HOUR, f.sched_dep_utc)
+        WHERE f.is_cancelled = 0
+          AND f.dep_delay_min IN (0, 1, 2, 3, 4, 5)
+          AND f.origin_airport_key IN ('DFW','CLT','MIA','ORD','PHX','PHL')
+        GROUP BY f.origin_airport_key, f.dest_airport_key,
+                 CASE WHEN f.dep_delay_min = 0 THEN '0' ELSE '1_5' END,
+                 sh.weather_severity_score
+    """)
+    rows = cursor.fetchall()
+
+    out_path = f"abfss://{WORKSPACE_ID}@onelake.dfs.fabric.microsoft.com/{LH_BRONZE_ID}/Files/analysis_export/d0_a14_tradeoff_agg.csv"
+    lines = ["station,dest,dep_bucket,weather_severity_score,n,n_a14"]
+    for r in rows:
+        sev = r[3] if r[3] is not None else ""
+        lines.append(f"{r[0]},{r[1]},{r[2]},{sev},{r[4]},{r[5]}")
+    notebookutils.fs.put(out_path, "\\n".join(lines), overwrite=True)
+    print(f"wrote {out_path} ({len(rows)} rows)")
+    write_diag("analysis_export_d0_a14", {"rows": len(rows)})
+except Exception as e:
+    write_diag("analysis_export_d0_a14_ERROR", {"error": repr(e), "traceback": _tb.format_exc()})
+    raise
+'''
+
+CELL_4_PASSENGER_FLOW = '''try:
+    def put_csv(path_name, header, rows):
+        out_path = f"abfss://{WORKSPACE_ID}@onelake.dfs.fabric.microsoft.com/{LH_BRONZE_ID}/Files/analysis_export/{path_name}"
+        lines = [header] + [",".join("" if v is None else str(v) for v in r) for r in rows]
+        notebookutils.fs.put(out_path, "\\n".join(lines), overwrite=True)
+        print(f"wrote {out_path} ({len(rows)} rows)")
+        return len(rows)
+
+    cursor.execute("""
+        SELECT date_key, hour24, SUM(passengers_screened)
+        FROM dbo.fact_checkpoint_hour
+        WHERE station = 'DFW'
+        GROUP BY date_key, hour24
+        ORDER BY date_key, hour24
+    """)
+    tsa_rows = cursor.fetchall()
+    n_tsa = put_csv("tsa_dfw_hourly.csv", "date_key,hour24,passengers_screened", tsa_rows)
+
+    cursor.execute("""
+        SELECT date_key, hour24, scheduled_departures, actual_departures
+        FROM dbo.fact_station_hour
+        WHERE station = 'DFW'
+        ORDER BY date_key, hour24
+    """)
+    sh_rows = cursor.fetchall()
+    n_sh = put_csv("dfw_station_hour.csv", "date_key,hour24,scheduled_departures,actual_departures", sh_rows)
+
+    cursor.execute("""
+        SELECT date_key, hour_range, avg_wait_us, avg_wait_non_us, max_wait_us, max_wait_non_us, total_passengers, flight_count
+        FROM dbo.fact_cbp_wait_hour
+        WHERE station = 'DFW'
+        ORDER BY date_key, hour_range
+    """)
+    cbp_rows = cursor.fetchall()
+    n_cbp = put_csv(
+        "cbp_dfw_hourly.csv",
+        "date_key,hour_range,avg_wait_us,avg_wait_non_us,max_wait_us,max_wait_non_us,total_passengers,flight_count",
+        cbp_rows,
+    )
+
+    cursor.execute("""
+        SELECT
+            CAST(FORMAT(f.sched_arr_utc, 'yyyyMMdd') AS INT) AS date_key,
+            DATEPART(HOUR, f.sched_arr_utc) AS hour24,
+            COUNT(*) AS n_intl_arrivals
+        FROM dbo.fact_flight_leg f
+        JOIN dbo.dim_airport a ON a.airport_key = f.origin_airport_key
+        WHERE f.dest_airport_key = 'DFW'
+          AND f.is_cancelled = 0
+          AND f.sched_arr_utc IS NOT NULL
+          AND a.iso_region IS NOT NULL AND a.iso_region NOT LIKE 'US-%'
+        GROUP BY CAST(FORMAT(f.sched_arr_utc, 'yyyyMMdd') AS INT), DATEPART(HOUR, f.sched_arr_utc)
+        ORDER BY date_key, hour24
+    """)
+    intl_rows = cursor.fetchall()
+    n_intl = put_csv("dfw_intl_arrivals_hourly.csv", "date_key,hour24,n_intl_arrivals", intl_rows)
+
+    write_diag("analysis_export_passenger_flow", {
+        "tsa_rows": n_tsa, "station_hour_rows": n_sh, "cbp_rows": n_cbp, "intl_arrival_rows": n_intl,
+    })
+except Exception as e:
+    write_diag("analysis_export_passenger_flow_ERROR", {"error": repr(e), "traceback": _tb.format_exc()})
+    raise
+'''
+
+CELLS = [CELL_0_CONNECT, CELL_1_TURN_CLIFF, CELL_2_STATION_DAY, CELL_3_D0_A14_TRADEOFF, CELL_4_PASSENGER_FLOW]
 
 
 def build_notebook_json() -> dict:
@@ -185,7 +308,7 @@ def build_platform_json() -> dict:
         "metadata": {
             "type": "Notebook",
             "displayName": "nb_analysis_export",
-            "description": "Pre-aggregated exports for signature analyses #3 (turn-length cliff) and #4 (weather-adjusted scorecard). Must run after nb_gold_build, nb_gold_turns, nb_silver_weather.",
+            "description": "Pre-aggregated exports for signature analyses #3 (turn-length cliff), #4 (weather-adjusted scorecard), #5 (D0 vs A14 tradeoff), and #6 (passenger flow). Must run after nb_gold_build, nb_gold_turns, nb_silver_weather.",
         },
         "config": {"version": "2.0", "logicalId": "00000000-0000-0000-0000-000000000000"},
     }

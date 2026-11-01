@@ -3,7 +3,7 @@
   "metadata": {
     "type": "Notebook",
     "displayName": "nb_analysis_export",
-    "description": "Pre-aggregated exports for signature analyses #3 (turn-length cliff) and #4 (weather-adjusted scorecard). Must run after nb_gold_build, nb_gold_turns, nb_silver_weather."
+    "description": "Pre-aggregated exports for signature analyses #3 (turn-length cliff), #4 (weather-adjusted scorecard), #5 (D0 vs A14 tradeoff), and #6 (passenger flow). Must run after nb_gold_build, nb_gold_turns, nb_silver_weather."
   },
   "config": {
     "version": "2.0",

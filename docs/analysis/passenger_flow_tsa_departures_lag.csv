@@ -1,0 +1,4 @@
+window,n_days_tsa,tsa_peak_hour,departures_peak_hour,best_lag_hours_dep_after_tsa,corr_at_best_lag
+full_window,221,7,8,-2,0.909
+pre_rebank,68,7,8,-2,0.829
+post_rebank,153,7,8,-2,0.917

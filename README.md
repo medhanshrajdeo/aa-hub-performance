@@ -16,7 +16,7 @@ quarantine at 0.017% (target <0.5%). Gold: full star schema live in
 `wh_gold` (dims + `fact_flight_leg`, `fact_checkpoint_hour`,
 `fact_cbp_wait_hour`, `fact_aircraft_turn`, `fact_station_hour`,
 `fact_rebank_effect`), reconciled against bronze raw aggregates to
-within 0.0001 point across all 44 months. All four signature analyses
+within 0.0001 point across all 44 months. All six signature analyses
 below are done. Phase 5 (Direct Lake semantic model + Power BI report)
 is next -- blocked on a licensing step only a human can complete (see
 `docs/runbook.md`'s "Not yet built"). See the project plan's "Build
@@ -160,6 +160,83 @@ and [`docs/analysis/station_day_scorecard.csv`](docs/analysis/station_day_scorec
   with sustained all-day weather. A production version would weight by
   how many scheduled departures fell in each severity bucket that day,
   not just take the day's max.
+
+### 5. Chasing exactly-on-time departures does buy a little A14 -- but it's a small, consistent effect, not the whole story
+
+For the 6 AA hub stations, compared A14 outcomes for flights that departed
+exactly on time (0 min late) vs 1-5 min late, controlling for route and
+weather severity with a weighted OLS (route fixed effects across 664
+routes with 100+ flights, weather severity as a continuous control). See
+[`analysis/dfw_d0_a14_tradeoff.py`](analysis/dfw_d0_a14_tradeoff.py) and
+[`docs/analysis/d0_a14_tradeoff_summary.csv`](docs/analysis/d0_a14_tradeoff_summary.csv).
+
+![A14 rate: departed on time vs 1-5 min late, by station](docs/analysis/d0_a14_tradeoff_by_station.png)
+
+- **Raw gap**: 92.3% A14 for exactly-on-time departures vs 90.3% for
+  1-5 min late (560K flights total). After controlling for route and
+  weather, the adjusted effect is **-2.14 pp A14** for pushing 1-5 min
+  late instead of exactly 0 (95% CI [-2.39, -1.89] pp, p<0.0001) -- real
+  and consistent across every one of the 6 hubs individually, not an
+  artifact of route mix.
+- **Weather dominates this relationship**: the weather-severity
+  coefficient in the same model is -8.5 pp A14 per severity point --
+  about 4x the size of the on-time-vs-1-5-late effect. A single bad-
+  weather hour costs more A14 than the entire D0-chasing effect buys
+  back.
+- **Framing for the interview** (this metric questions one AA pays on,
+  per the plan): D0 *does* pay off for A14, just modestly -- a leader
+  pushing a flight out exactly on time instead of a few minutes late is
+  buying a small, real arrival-reliability edge, but it's nowhere near
+  enough to recover a weather-driven A14 hit, so it shouldn't be read as
+  "D0 fixes A14." The payoff is real but small; weather is the bigger
+  lever on arrivals specifically.
+- **Honest caveat**: this compares two already-on-time-ish buckets (0
+  vs 1-5 min late), not a full dose-response curve, and it's observational
+  -- routes/weather aren't randomized across dep-delay buckets, so route
+  FE + weather control the two largest known confounders, not every one.
+
+### 6. TSA screening runs about an hour ahead of departure banks; CBP wait at DFW is not simply volume-driven
+
+TSA checkpoint throughput (35 weeks, Jan-Sep 2026, spanning the rebank)
+compared to scheduled departure volume by DFW-local hour; CBP Terminal D
+wait compared to CBP's own passenger-volume counts by hour. Unlike the
+plan's original scope, this drops the denied-boardings/bag/wheelchair
+peer comparison -- that's DOT Air Travel Consumer Report data, out of
+scope per [ADR 0012](docs/decisions/0012-dot-t100-scope-out.md). See
+[`analysis/dfw_passenger_flow.py`](analysis/dfw_passenger_flow.py).
+
+![DFW: TSA checkpoint throughput vs departure volume by local hour](docs/analysis/passenger_flow_tsa_departures.png)
+
+- **TSA peaks at 7:00 local, scheduled departures peak at 8:00** --
+  consistent with the TSA ramp running roughly an hour ahead of the
+  departure bank it's clearing security for, and this 1-hour peak
+  offset holds in both the pre-rebank (Jan-Apr 2026) and post-rebank
+  (Apr-Sep 2026) windows, so the rebank didn't change the basic
+  screening-to-departure rhythm. See
+  [`docs/analysis/passenger_flow_tsa_departures_lag.csv`](docs/analysis/passenger_flow_tsa_departures_lag.csv).
+
+![DFW Terminal D: CBP wait vs CBP-reported passenger volume by local hour](docs/analysis/passenger_flow_cbp_intl_arrivals.png)
+
+- **CBP wait at Terminal D does not peak when passenger volume peaks**:
+  CBP's own hourly passenger counts peak at 14:00 (~1,920 pax/hr), but
+  the longest average non-US wait is at 9:00 (29.9 min) -- a lower-
+  volume hour (~660 pax/hr). Correlation between wait and CBP's own
+  volume across the day is moderate (r=0.59), not tight. **This is the
+  same shape as analysis #4's weather-vs-volume finding**: whatever's
+  driving wait, it isn't simply "more passengers" -- staffing levels
+  (booths open) by hour are the likelier explanation, and `fact_cbp_wait_hour`
+  has a `booths_open` column this analysis didn't yet pull in to check
+  directly.
+- **Cross-check**: an independent, BTS-derived proxy for international
+  arrivals (origin airport outside the US, converted from UTC to DFW
+  local time) correlates with CBP's own passenger counts at r=0.45 --
+  same-day, same-hour, no lag search. Positive but middling agreement
+  between two independently-sourced volume measures is itself a useful
+  sanity check, not a clean confirmation.
+- **Honest caveat**: CBP data is Terminal D only (DFW's sole federal
+  inspection station), and the BTS-derived international-arrival proxy
+  is approximate -- BTS has no explicit domestic/international flag, so
+  "origin outside the US" stands in for it.
 
 ## Architecture
 

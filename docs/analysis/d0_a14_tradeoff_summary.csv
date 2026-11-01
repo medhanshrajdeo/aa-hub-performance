@@ -1,0 +1,2 @@
+comparison,n_flights_0,n_flights_1_5,raw_a14_rate_0,raw_a14_rate_1_5,route_weather_adjusted_a14_lift_pp,p_value,n_cells_in_model,n_routes_in_model
+1_5_min_late_vs_0,183888,376022,0.9231,0.9025,-2.139,0.0,3692,664
