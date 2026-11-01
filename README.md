@@ -37,6 +37,79 @@ sweep + report page) -- see
 full done-vs-blocked breakdown. See the project plan's "Build phases"
 section for the rest.
 
+## Dashboard
+
+`rpt_hubops`, a Direct Lake Power BI report over `sm_hubops`. Screenshots
+below are from the live report (headless render against real data, not
+mockups). American Airlines' public brand colors (navy, red) are used as
+a palette only -- no logo, wordmark, or claim of affiliation anywhere,
+per this project's own no-AA-branding rule.
+
+### 1. Hub Scorecard -- for station leaders
+
+D0, A14, CF, controllable CF, and the weather-adjusted D0 gap for every
+AA hub, with a station/year filter. Row-level security scopes each real
+hub leader to just their own station.
+
+![Hub Scorecard](docs/screenshots/01_hub_scorecard.png)
+
+### 2. Bank Performance -- for DFW hub ops
+
+Departure/arrival wave shape reconstructed directly from the public
+schedule, pre vs post the April 2026 rebank, plus the headline D0/A14
+comparison.
+
+![Bank Performance](docs/screenshots/02_bank_performance.png)
+
+### 3. Turn Performance -- for ramp and gate leads
+
+Outbound D0 by fleet on on-time-inbound turns (isolating the station's
+own effect), turn volume vs. minutes recovered, and the worst routes
+into DFW. Right-click any fleet bar to drill through to fleet-level
+detail.
+
+![Turn Performance](docs/screenshots/03_turn_performance.png)
+
+### 4. Delay Root Cause -- for ops analysts
+
+Cause-minutes by month (carrier/weather/NAS/security/late-aircraft),
+controllable and late-aircraft share trends, and the same cut by
+station.
+
+![Delay Root Cause](docs/screenshots/04_delay_root_cause.png)
+
+### 5. Rebank Impact -- for leadership
+
+The project's central question, answered: a weather-adjusted
+difference-in-differences event study of DFW vs. an ORD control,
+with effect sizes, 95% confidence intervals, and the pre-trend check
+shown rather than hidden.
+
+![Rebank Impact](docs/screenshots/05_rebank_impact.png)
+
+### 6. Passenger Flow -- for customer ops
+
+TSA checkpoint throughput vs. scheduled departures and CBP wait times
+vs. CBP's own passenger volume, both by local hour, plus an independent
+BTS-derived cross-check of CBP's counts.
+
+![Passenger Flow](docs/screenshots/06_passenger_flow.png)
+
+### 7. Data Health -- for analysts
+
+The Phase 8 "does the data check out" page: freshness and row counts
+for every real gold table, swept by `fabric/nb_meta_health.Notebook`,
+plus the confirmed bronze-vs-gold reconciliation.
+
+![Data Health](docs/screenshots/07_data_health.png)
+
+### 8. Fleet Turn Detail -- hidden drillthrough target
+
+Reached by right-clicking a fleet on Turn Performance, not from the
+page tabs. Filtered KPIs for a single fleet's turn performance at DFW.
+
+![Fleet Turn Detail](docs/screenshots/08_fleet_turn_detail.png)
+
 ## Findings
 
 ### 1. DFW's bank structure did change around the April 2026 rebank
