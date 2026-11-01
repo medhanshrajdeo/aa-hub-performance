@@ -2,9 +2,11 @@
 // target) (PBIR) on top of sm_hubops, per the
 // "Industrial Dense / Analyst Workbench" design identity (see
 // fabric/rpt_hubops.Report/StaticResources/RegisteredResources/HubOpsWorkbench-*.json):
-// off-white canvas, steel-blue/burnt-orange accent pair, tabular-numeral KPI
-// cards with YoY-status accent bars, FillRule-gradient single-measure bars,
-// field-parameter-driven metric pickers, and dynamic (measure-bound) titles.
+// off-white canvas, navy/red accent pair inspired by American Airlines'
+// public brand colors (no logo/wordmark/trademarked imagery -- see the
+// "no AA logos" rule in CLAUDE.md), navy page titles with a red accent
+// rule, tabular-numeral KPI cards with YoY-status accent bars, FillRule-
+// gradient single-measure bars, and dynamic (measure-bound) titles.
 // Analytical Canvas archetype, Variant B (Inline-Slicers, 1-3 slicers/page),
 // FHD 1920x1080. Run with: node scripts/fabric/build_report.js
 //
@@ -35,16 +37,22 @@ const MARGIN = 32;
 const GUTTER = 24;
 const CONTENT_W = CANVAS_W - 2 * MARGIN;
 
-// ---- design tokens (mirrors HubOpsWorkbench-a1f3.json dataColors) ----
+// ---- design tokens (mirrors HubOpsWorkbench-7c2e.json dataColors) ----
+// Palette shifted toward American Airlines' public brand colors (deep
+// navy blue + red, no logo/wordmark/trademarked imagery used anywhere --
+// see the project's "no AA logos" rule in CLAUDE.md). steelBlue/crimson
+// keep their original token names (minimize code churn) but now carry
+// AA Navy / AA Red hex values; both clear WCAG AA body-text contrast on
+// white (11.98:1 and 5.88:1 respectively).
 const COLOR = {
-  steelBlue: "#3B6E91",
-  steelBlueTint: "#D7E6EE",
+  steelBlue: "#003865",
+  steelBlueTint: "#D6E2EB",
   burntOrange: "#C8742A",
   burntOrangeTint: "#F3DFC9",
   forest: "#1C5E47",
   forestTint: "#CFE3DB",
-  crimson: "#B23A48",
-  crimsonTint: "#F0D4D7",
+  crimson: "#C8102E",
+  crimsonTint: "#F5D7DB",
   slate: "#64748B",
   slateTint: "#DEE3E9",
   // #C9A227 (the theme's original gold) fails WCAG non-text contrast on
@@ -442,6 +450,31 @@ function backButton({ name, x, y, z, w = 48, h = 48 }) {
   });
 }
 
+// Thin brand-accent rule (AA red) under each page title.
+function accentRule({ name, x, y, z, w, h = 4 }) {
+  return visualContainer({
+    name, x, y, z, w, h,
+    visual: {
+      visualType: "shape",
+      objects: {
+        shape: [{ properties: { tileShape: litExpr("'rectangle'") }, selector: { id: "default" } }],
+        fill: [{ properties: { show: litExpr("true"), fillColor: solidLit(COLOR.crimson) }, selector: { id: "default" } }],
+        outline: [{ properties: { show: litExpr("false") }, selector: { id: "default" } }],
+      },
+      visualContainerObjects: {
+        // The theme's wildcard visualStyles["*"]["*"] gives every visual an
+        // 8px padded, bordered white container by default -- fine for
+        // charts/cards, but it swallows a 4px-tall accent bar inside a
+        // bigger blank rounded box. Strip it for this one visual type.
+        background: [{ properties: { show: litExpr("false") } }],
+        border: [{ properties: { show: litExpr("false") } }],
+        padding: [{ properties: { top: litExpr("0D"), bottom: litExpr("0D"), left: litExpr("0D"), right: litExpr("0D") } }],
+        visualHeader: [{ properties: { show: litExpr("false") } }],
+      },
+    },
+  });
+}
+
 function textbox({ name, x, y, z, w, h, text, size = "9pt", italic = true, color = COLOR.muted }) {
   return visualContainer({
     name, x, y, z, w, h,
@@ -557,7 +590,7 @@ const page1Id = writePage({
     const rows = layout(MARGIN, [{ h: 80 }, { h: 120 }, { h: 280 }, { h: 200 }, { h: 240 }]);
     const [titleRow, kpiRow, heroRow, suppRow, detailRow] = rows;
 
-    // Title band: dynamic title textbox + 3 slicers
+    // Title band: dynamic title textbox (navy, AA-red accent rule) + slicers
     visuals.push(visualContainer({
       name: visualId(), x: MARGIN, y: titleRow.y, z: 1000, w: 820, h: titleRow.h,
       visual: {
@@ -565,20 +598,15 @@ const page1Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Flight Leg", "Hub Scorecard Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 876, y: titleRow.y, z: 1001, w: 200, h: titleRow.h, table: "Airport", property: "Airport Key", header: "Station" }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 1092, y: titleRow.y, z: 1002, w: 140, h: titleRow.h, table: "Date", property: "Year", header: "Year" }));
-    // Dropdown, not tiles: the Hub KPI field parameter has 5 values, and the
-    // card-tile layout truncated/clipped once there wasn't room for all 5
-    // in one row at this width. A dropdown shows the full label text
-    // regardless of option count and has standard combobox keyboard/screen-
-    // reader semantics, which the custom tile buttons don't.
-    visuals.push(dropdownSlicer({ name: visualId(), x: 1248, y: titleRow.y, z: 1003, w: 240, h: titleRow.h, table: "Hub KPI", property: "Hub KPI", header: "Hero Chart Metric" }));
 
     // KPI strip -- 5 cards with reference-label context (vs-LY for D0/A14), YoY status accent
     const kc = cols(5, CONTENT_W, MARGIN);
@@ -588,13 +616,7 @@ const page1Id = writePage({
     visuals.push(kpiCard({ name: visualId(), x: kc[3].x, y: kpiRow.y, z: 1013, w: kc[3].w, h: kpiRow.h, table: "Flight Leg", measureName: "Controllable CF %", label: "Controllable CF %", accent: COLOR.teal }));
     visuals.push(kpiCard({ name: visualId(), x: kc[4].x, y: kpiRow.y, z: 1014, w: kc[4].w, h: kpiRow.h, table: "Station Day Scorecard", measureName: "Avg D0 vs Expected (pp)", label: "Weather-Adjusted D0 Gap", accent: COLOR.gold }));
 
-    // Hero: D0% / A14% trend. (The "Hero Chart Metric" tile slicer above is
-    // the Hub KPI field parameter exposed for analyst self-service in
-    // Desktop -- drag it onto any visual's axis to swap the plotted metric.
-    // A pre-wired dynamic axis swap needs Desktop's own internal field-
-    // parameter query encoding, which isn't in the public PBIR schema --
-    // confirmed by testing: a plain Column reference in a Measure-kind role
-    // fails both validate and live render with InvalidUnconstrainedJoin.)
+    // Hero: D0% / A14% trend.
     visuals.push(lineChart({
       name: visualId(), x: MARGIN, y: heroRow.y, z: 1020, w: CONTENT_W, h: heroRow.h,
       title: "D0 % and A14 % by Month",
@@ -674,12 +696,13 @@ const page2Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Flight Leg", "Bank Performance Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 1296, y: titleRow.y, z: 1001, w: 230, h: titleRow.h, table: "Bank", property: "Period", header: "Bank Chart Period" }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 1550, y: titleRow.y, z: 1002, w: 170, h: titleRow.h, table: "Bank", property: "Direction", header: "Direction" }));
 
@@ -752,14 +775,13 @@ const page3Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Flight Leg", "Turn Performance Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
-    // Dropdown, not tiles -- same truncation fix as Hub KPI above.
-    visuals.push(dropdownSlicer({ name: visualId(), x: 1296, y: titleRow.y, z: 1001, w: 240, h: titleRow.h, table: "Turn Metric", property: "Turn Metric", header: "Chart Metric" }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
 
     // Headline finding: station-caused vs inbound-caused delay (README #3)
     const kc = cols(4, CONTENT_W, MARGIN);
@@ -838,12 +860,13 @@ const page4Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Flight Leg", "Delay Root Cause Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 1456, y: titleRow.y, z: 1001, w: 140, h: titleRow.h, table: "Date", property: "Year", header: "Year" }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 1612, y: titleRow.y, z: 1002, w: 200, h: titleRow.h, table: "Airport", property: "Airport Key", header: "Station" }));
 
@@ -930,12 +953,13 @@ const page5Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Flight Leg", "Rebank Impact Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
 
     // Effect-size cards: DFW vs ORD control, diff-in-diff, weather-adjusted
     // (signature analysis #2). Crimson = DFW got worse relative to control
@@ -1008,12 +1032,13 @@ const page6Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Flight Leg", "Passenger Flow Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN, y: titleRow.y + titleRow.h - 4, z: 999, w: 140 }));
 
     // KPI strip: real cumulative totals from the raw TSA/CBP fact tables
     // (not the small hourly-profile tables used for shape below).
@@ -1104,12 +1129,13 @@ const page7Id = writePage({
         objects: {
           general: [{ properties: { paragraphs: [{ textRuns: [{
             value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
-            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "22pt", color: COLOR.ink },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "22pt", color: COLOR.steelBlue },
           }] }] } }],
           values: [{ properties: { expr: { expr: meas("Aircraft Turn", "Fleet Detail Title") } }, selector: { id: "pageTitle" } }],
         },
       },
     }));
+    visuals.push(accentRule({ name: visualId(), x: MARGIN + 64, y: titleRow.y + titleRow.h - 4, z: 998, w: 140 }));
 
     const kc = cols(4, CONTENT_W, MARGIN);
     visuals.push(kpiCard({ name: visualId(), x: kc[0].x, y: kpiRow.y, z: 1010, w: kc[0].w, h: kpiRow.h, table: "Aircraft Turn", measureName: "Outbound D0 %", label: "Outbound D0 %, DFW, This Fleet", accent: COLOR.steelBlue }));

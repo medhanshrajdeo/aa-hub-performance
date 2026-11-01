@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "ac3b193a5661231acfad",
+  "position": {
+    "x": 32,
+    "y": 908,
+    "z": 1041,
+    "height": 36,
+    "width": 1856,
+    "tabOrder": 1041
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Scope: hourly profiles are means across the analysis window in analysis/dfw_passenger_flow.py (signature analysis #6). Checkpoint Hour is TSA's full national checkpoint feed, filtered to DFW above; CBP Wait Hour is DFW-only by data construction. BTS-proxy international arrivals are a schedule-based estimate (BTS T-100 segment is out of scope -- ADR 0012), not a direct CBP measurement, so the cross-check at right is a shape comparison, not a reconciliation to the decimal.",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#605E5C",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

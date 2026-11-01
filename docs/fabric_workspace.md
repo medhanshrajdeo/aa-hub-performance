@@ -361,3 +361,18 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   whose axis labels collided into unreadable overlapping text in a
   ~600px-wide panel, changed to yearly grain. See
   [ADR 0017](decisions/0017-drillthrough-and-accessibility-pass.md).
+- **AA-inspired palette, removed non-functional metric pickers
+  (2026-11-01):** the `Hero Chart Metric`/`Chart Metric` dropdowns never
+  actually swapped a chart's plotted measure for a report *viewer* --
+  field parameters can only be dragged onto an axis in Desktop's edit
+  mode, and pre-wiring that into the shipped PBIR is the confirmed
+  `InvalidUnconstrainedJoin` dead end from ADR 0016. Removed both
+  dropdowns rather than ship a control that visibly did nothing; the
+  `Hub KPI`/`Turn Metric` field parameter tables stay in `sm_hubops` for
+  anyone who wants to use them in Desktop directly. Shifted the theme's
+  two primary tokens to American Airlines' public brand colors (navy
+  `#003865`, red `#C8102E` -- no logo/wordmark, per CLAUDE.md's "no AA
+  logos" rule), gave every page title a matching navy color + a short
+  red accent rule, and renamed the theme file (cache-busting) to
+  `HubOpsWorkbench-2f91.json`. See
+  [ADR 0018](decisions/0018-aa-palette-and-dead-slicer-removal.md).
