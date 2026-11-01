@@ -3,15 +3,22 @@
 Did American's April 2026 DFW rebank improve departure reliability, net of
 weather -- and where are frontline leaders still losing controllable
 minutes? An independent, end-to-end analysis on public federal aviation
-data (BTS, TSA, CBP, DOT, FAA, IEM), built on Microsoft Fabric.
+data (BTS, TSA, CBP, FAA, IEM), built on Microsoft Fabric. DOT and T-100
+were scoped out -- see [ADR 0012](docs/decisions/0012-dot-t100-scope-out.md).
 
 Full project plan, data sources, KPI definitions, and the phase-by-phase
 build log live in [`planning/project-plan.md`](planning/project-plan.md).
 
-**Status:** Phases 0-1 done (Fabric workspace + lakehouses/warehouse live,
-BTS source validated against real data); first signature analysis
-prototyped locally. See the project plan's "Build phases" section for
-what's left.
+**Status:** Phases 0-3 done. Bronze: all five real sources landed (BTS
+44 months/27.8M rows all carriers, TSA 35 weeks, CBP, FAA fleet, IEM
+weather). Silver: BTS times resolved to UTC, KPI flags computed, quality
+quarantine at 0.017% (target <0.5%). Gold: full star schema live in
+`wh_gold` (dims + `fact_flight_leg`, `fact_checkpoint_hour`,
+`fact_cbp_wait_hour`, `fact_aircraft_turn`, `fact_rebank_effect`),
+reconciled against bronze raw aggregates to within 0.0001 point across
+all 44 months. Both signature analyses below are done. Phase 5 (Direct
+Lake semantic model + Power BI report) is next. See the project plan's
+"Build phases" section for the rest.
 
 ## Findings
 

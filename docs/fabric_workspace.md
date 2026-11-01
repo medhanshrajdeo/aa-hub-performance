@@ -183,11 +183,22 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   aggregates, not DOT -- ADR 0012) passed across all 44 months: max D0
   diff 0.0000924, max CF diff 0.0000087.
 
-- `nb_gold_turns` (id TBD) -- Phase 6's `fact_aircraft_turn`, "the table
-  nobody else builds from public data" per the plan. Pairs each tail's
-  inbound arrival with its next departure from the same station, same
-  rule as the tested `hubops.turns.pair_turns()` (same station,
-  non-negative gap, gap under 6 hours), reimplemented as a set-based
-  T-SQL window-function query (`LEAD()` per tail partition) instead of
-  row-by-row Python, since it runs over `fact_flight_leg`'s ~27.8M rows.
-  Must run after `nb_gold_build`.
+- `nb_gold_turns` (id `bef4f11b-3dba-4b69-a1bf-57f0e09b649a`) -- Phase
+  6's `fact_aircraft_turn`, "the table nobody else builds from public
+  data" per the plan. Pairs each tail's inbound arrival with its next
+  departure from the same station, same rule as the tested
+  `hubops.turns.pair_turns()` (same station, non-negative gap, gap under
+  6 hours), reimplemented as a set-based T-SQL window-function query
+  (`LEAD()` per tail partition) instead of row-by-row Python, since it
+  runs over `fact_flight_leg`'s ~27.8M rows. Must run after
+  `nb_gold_build`. Ran clean: 21,024,172 total turns (893,482 at DFW),
+  fleet-p10 flagging via `PERCENTILE_CONT(0.1) WITHIN GROUP (...) OVER
+  (PARTITION BY fleet_family)` worked on the first try (5,098,813 rows
+  flagged -- only AA's own fleet has a `dim_aircraft` match, so non-AA
+  tails are left unflagged, expected). Spot-checked the first sample row
+  by hand: a 2026-08-31 DFW arrival scheduled 23:30, actually landing
+  04:09 the next day (279 min late), paired with an outbound scheduled
+  23:53 but not actually departing until 10:02 (609 min late) --
+  `minutes_recovered = 279 - 609 = -330`, exactly matching the stored
+  value. This also closes Phase 2's remaining "done when" item (20
+  hand-checked DFW turns pairing correctly).
