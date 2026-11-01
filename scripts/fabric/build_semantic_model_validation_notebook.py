@@ -83,7 +83,26 @@ except Exception as e:
     raise
 '''
 
-CELLS = [CELL_0_CONNECT, CELL_1_SLICES, CELL_2_SCORECARD_CHECK]
+CELL_3_PASSENGER_FLOW_CHECK = '''try:
+    result = {}
+    for t in ["fact_tsa_departure_hour_profile", "fact_cbp_hour_profile"]:
+        cursor.execute("SELECT COUNT(*) FROM sys.tables WHERE name = ?", t)
+        exists = cursor.fetchone()[0]
+        row = {"table_exists": bool(exists)}
+        if exists:
+            cursor.execute(f"SELECT COUNT(*) FROM dbo.{t}")
+            row["row_count"] = cursor.fetchone()[0]
+        result[t] = row
+    cursor.execute("SELECT name, type_desc, create_date FROM sys.tables WHERE name LIKE '%passenger%' OR name LIKE '%tsa%' OR name LIKE '%cbp%'")
+    result["matching_tables"] = [{"name": r[0], "type": r[1], "created": str(r[2])} for r in cursor.fetchall()]
+    print(_json.dumps(result, indent=2))
+    write_diag("validate_sm_passenger_flow_check", result)
+except Exception as e:
+    write_diag("validate_sm_passenger_flow_check_ERROR", {"error": repr(e), "traceback": _tb.format_exc()})
+    raise
+'''
+
+CELLS = [CELL_0_CONNECT, CELL_1_SLICES, CELL_2_SCORECARD_CHECK, CELL_3_PASSENGER_FLOW_CHECK]
 
 
 def build_notebook_json() -> dict:

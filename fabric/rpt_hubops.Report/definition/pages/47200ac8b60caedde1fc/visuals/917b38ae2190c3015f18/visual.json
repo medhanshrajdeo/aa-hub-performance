@@ -1,0 +1,193 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "917b38ae2190c3015f18",
+  "position": {
+    "x": 32,
+    "y": 300,
+    "z": 1020,
+    "height": 320,
+    "width": 1856,
+    "tabOrder": 1020
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Rebank Event Study"
+                    }
+                  },
+                  "Property": "Week Relative"
+                }
+              },
+              "queryRef": "Rebank Event Study.Week Relative",
+              "nativeQueryRef": "Week Relative",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Rebank Event Study"
+                    }
+                  },
+                  "Property": "Event Study Coef"
+                }
+              },
+              "queryRef": "Rebank Event Study.Event Study Coef",
+              "nativeQueryRef": "Event Study Coef"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Rebank Event Study"
+                    }
+                  },
+                  "Property": "Event Study CI Low"
+                }
+              },
+              "queryRef": "Rebank Event Study.Event Study CI Low",
+              "nativeQueryRef": "Event Study CI Low"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Rebank Event Study"
+                    }
+                  },
+                  "Property": "Event Study CI High"
+                }
+              },
+              "queryRef": "Rebank Event Study.Event Study CI High",
+              "nativeQueryRef": "Event Study CI High"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "legend": [
+        {
+          "properties": {
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Top'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "y1AxisReferenceLine": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "lineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#64748B'"
+                    }
+                  }
+                }
+              }
+            },
+            "style": {
+              "expr": {
+                "Literal": {
+                  "Value": "'dashed'"
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Weekly D0 Effect vs ORD Control, Relative to Rebank Week (Coefficient and 95% CI)'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Weekly D0 Effect vs ORD Control, Relative to Rebank Week (Coefficient and 95% CI)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

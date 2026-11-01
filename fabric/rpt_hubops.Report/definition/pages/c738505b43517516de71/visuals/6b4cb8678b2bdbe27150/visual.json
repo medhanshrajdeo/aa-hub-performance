@@ -1,0 +1,255 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "6b4cb8678b2bdbe27150",
+  "position": {
+    "x": 32,
+    "y": 808,
+    "z": 1040,
+    "height": 240,
+    "width": 1856,
+    "tabOrder": 1040
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Period"
+                }
+              },
+              "queryRef": "Bank.Period",
+              "nativeQueryRef": "Period"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Direction"
+                }
+              },
+              "queryRef": "Bank.Direction",
+              "nativeQueryRef": "Direction"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Bank Number"
+                }
+              },
+              "queryRef": "Bank.Bank Number",
+              "nativeQueryRef": "Bank Number"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Peak Time"
+                }
+              },
+              "queryRef": "Bank.Peak Time",
+              "nativeQueryRef": "Peak Time"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Peak Avg Flights"
+                }
+              },
+              "queryRef": "Bank.Peak Avg Flights",
+              "nativeQueryRef": "Peak Avg Flights"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Window Start"
+                }
+              },
+              "queryRef": "Bank.Window Start",
+              "nativeQueryRef": "Window Start"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bank"
+                    }
+                  },
+                  "Property": "Window End"
+                }
+              },
+              "queryRef": "Bank.Window End",
+              "nativeQueryRef": "Window End"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Bank"
+                  }
+                },
+                "Property": "Direction"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "columnHeaders": [
+        {
+          "properties": {
+            "columnAdjustment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'growToFit'"
+                }
+              }
+            },
+            "autoSizeColumnWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnFormatting": [
+        {
+          "properties": {
+            "dataBars": {
+              "positiveColor": {
+                "solid": {
+                  "color": {
+                    "expr": {
+                      "Literal": {
+                        "Value": "'#3B6E91'"
+                      }
+                    }
+                  }
+                }
+              },
+              "negativeColor": {
+                "solid": {
+                  "color": {
+                    "expr": {
+                      "Literal": {
+                        "Value": "'#B23A48'"
+                      }
+                    }
+                  }
+                }
+              },
+              "axisColor": {
+                "solid": {
+                  "color": {
+                    "expr": {
+                      "Literal": {
+                        "Value": "'#64748B'"
+                      }
+                    }
+                  }
+                }
+              },
+              "reverseDirection": {
+                "expr": {
+                  "Literal": {
+                    "Value": "false"
+                  }
+                }
+              },
+              "hideText": {
+                "expr": {
+                  "Literal": {
+                    "Value": "false"
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bank.Peak Avg Flights"
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DFW Bank Windows (Reconstructed from the Schedule)'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

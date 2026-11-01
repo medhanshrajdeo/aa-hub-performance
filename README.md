@@ -22,12 +22,14 @@ Direct Lake model over `wh_gold` with RLS by hub, 25 measures matching
 `docs/kpi_spec.md` exactly, D0/A14/CF verified against SQL to the
 decimal for 3 test slices (see
 [ADR 0014](docs/decisions/0014-direct-lake-semantic-model-quirks.md));
-and `rpt_hubops`, a 4-page Power BI report on top of it (Hub Scorecard,
-Bank Performance, Turn Performance, Delay Root Cause), built headless
-via the `powerbi-report-authoring` CLI and verified against live data
-(no Power BI Desktop in this environment) -- see
-`docs/fabric_workspace.md`'s "Report" section. Phase 8 (report pages
-5-8, production hardening) is next. See the project plan's "Build
+and `rpt_hubops`, a 7-page Power BI report on top of it -- 6 visible
+(Hub Scorecard, Bank Performance, Turn Performance, Delay Root Cause,
+Rebank Impact, Passenger Flow) plus a hidden Fleet Turn Detail
+drillthrough page -- built headless via the `powerbi-report-authoring`
+CLI and verified against live data both headlessly and in Power BI
+Desktop -- see `docs/fabric_workspace.md`'s "Report" section and
+[ADR 0017](docs/decisions/0017-drillthrough-and-accessibility-pass.md).
+Phase 8 (production hardening) is next. See the project plan's "Build
 phases" section for the rest.
 
 ## Findings

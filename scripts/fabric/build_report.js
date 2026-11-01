@@ -1,4 +1,5 @@
-// Generates rpt_hubops's 4 report pages (PBIR) on top of sm_hubops, per the
+// Generates rpt_hubops's 7 report pages (6 visible + 1 hidden drillthrough
+// target) (PBIR) on top of sm_hubops, per the
 // "Industrial Dense / Analyst Workbench" design identity (see
 // fabric/rpt_hubops.Report/StaticResources/RegisteredResources/HubOpsWorkbench-*.json):
 // off-white canvas, steel-blue/burnt-orange accent pair, tabular-numeral KPI
@@ -46,7 +47,11 @@ const COLOR = {
   crimsonTint: "#F0D4D7",
   slate: "#64748B",
   slateTint: "#DEE3E9",
-  gold: "#C9A227",
+  // #C9A227 (the theme's original gold) fails WCAG non-text contrast on
+  // white (2.4:1, needs 3:1) and body text (needs 4.5:1) -- this darker
+  // shade holds the same amber identity at 4.9:1 on white / 4.7:1 on
+  // #FAFAFA, passing AA body text everywhere it's used as card/line color.
+  gold: "#8A6D14",
   goldTint: "#F2E6C2",
   teal: "#2A9D8F",
   tealTint: "#CFEAE7",
@@ -104,6 +109,16 @@ function visualContainer({ name, x, y, z, w, h, visual }) {
   };
 }
 
+// Accessibility: WCAG 1.1.1 / 4.1.2 need every visual to have an
+// accessible name/description for screen readers. Merges onto whatever
+// VCO (title-bearing or not) the caller already built.
+function withAltText(vco, text) {
+  if (!text) return vco;
+  const safe = text.replace(/'/g, "");
+  const base = vco || {};
+  return { ...base, general: [{ properties: { altText: litExpr(`'${safe}'`) } }] };
+}
+
 function staticTitleVCO(text, size = "14D") {
   return { title: [{ properties: {
     show: litExpr("true"),
@@ -127,7 +142,7 @@ function dynamicTitleVCO(table, measureName, size = "14D") {
 // Cards
 // ============================================================
 // measure: { table, name, label, accent, accentTint, referenceMeasure? (table,name) }
-function kpiCard({ name, x, y, z, w, h, table, measureName, label, accent, statusConditional, filters }) {
+function kpiCard({ name, x, y, z, w, h, table, measureName, label, accent, statusConditional, filters, altText }) {
   const accentColorExpr = statusConditional
     ? { solid: { color: { expr: {
         Conditional: {
@@ -162,12 +177,12 @@ function kpiCard({ name, x, y, z, w, h, table, measureName, label, accent, statu
         value: [{ properties: { fontSize: litExpr("24D"), fontColor: solidLit(accent) }, selector: { id: "default" } }],
         label: [{ properties: { text: litExpr(`'${label}'`), fontSize: litExpr("10D"), fontColor: solidLit(COLOR.muted) }, selector: { id: "default" } }],
       },
-      visualContainerObjects: {
+      visualContainerObjects: withAltText({
         background: [{ properties: { show: litExpr("true"), color: solidLit("#FFFFFF"), transparency: litExpr("0D") } }],
         border: [{ properties: { show: litExpr("true"), color: solidLit(COLOR.hairline), radius: litExpr("8D") } }],
         padding: [{ properties: { top: litExpr("0D"), bottom: litExpr("0D"), left: litExpr("0D"), right: litExpr("0D") } }],
         visualHeader: [{ properties: { show: litExpr("false") } }],
-      },
+      }, altText || label),
     },
   });
   if (filters) vc.filterConfig = { filters };
@@ -190,7 +205,7 @@ function yField(y) {
   return measProj(y.table, y.property);
 }
 
-function barChart({ name, x, y, z, w, h, type = "clusteredColumnChart", title, dynamicTitle, table, category, categoryExtra = [], series, yMeasures, sort, filters, gradient, invertAxis }) {
+function barChart({ name, x, y, z, w, h, type = "clusteredColumnChart", title, dynamicTitle, table, category, categoryExtra = [], series, yMeasures, sort, filters, gradient, invertAxis, altText }) {
   const categoryProjections = [colProj(table, category, { active: true }), ...categoryExtra.map((c) => colProj(c.table, c.property, { active: true }))];
   const queryState = {
     Category: { projections: categoryProjections },
@@ -234,7 +249,7 @@ function barChart({ name, x, y, z, w, h, type = "clusteredColumnChart", title, d
       visualType: type,
       query,
       objects,
-      visualContainerObjects: dynamicTitle ? dynamicTitleVCO(dynamicTitle.table, dynamicTitle.measure) : (title ? staticTitleVCO(title) : undefined),
+      visualContainerObjects: withAltText(dynamicTitle ? dynamicTitleVCO(dynamicTitle.table, dynamicTitle.measure) : (title ? staticTitleVCO(title) : undefined), altText || title),
     },
   });
   if (filters) vc.filterConfig = { filters };
@@ -244,7 +259,7 @@ function barChart({ name, x, y, z, w, h, type = "clusteredColumnChart", title, d
 // ============================================================
 // Line chart, optionally bound to a field-parameter "Fields" column
 // ============================================================
-function lineChart({ name, x, y, z, w, h, title, dynamicTitle, table, category, categoryExtra = [], yMeasures, yFieldParam, referenceLine, filters }) {
+function lineChart({ name, x, y, z, w, h, title, dynamicTitle, table, category, categoryExtra = [], yMeasures, yFieldParam, referenceLine, filters, altText }) {
   const categoryProjections = [colProj(table, category, { active: true }), ...categoryExtra.map((c) => colProj(c.table, c.property, { active: true }))];
   let yProjections;
   if (yFieldParam) {
@@ -274,7 +289,40 @@ function lineChart({ name, x, y, z, w, h, title, dynamicTitle, table, category, 
         Y: { projections: yProjections },
       } },
       objects,
-      visualContainerObjects: dynamicTitle ? dynamicTitleVCO(dynamicTitle.table, dynamicTitle.measure) : (title ? staticTitleVCO(title) : undefined),
+      visualContainerObjects: withAltText(dynamicTitle ? dynamicTitleVCO(dynamicTitle.table, dynamicTitle.measure) : (title ? staticTitleVCO(title) : undefined), altText || title),
+    },
+  });
+  if (filters) vc.filterConfig = { filters };
+  return vc;
+}
+
+// ============================================================
+// Dual-axis combo chart (columns on Y / primary axis, lines on Y2 /
+// secondary axis) -- for pairing series with very different magnitudes
+// (e.g. passenger counts vs. flight counts) on one timeline.
+// ============================================================
+function comboChart({ name, x, y, z, w, h, title, table, category, yColumns, y2Columns, referenceLine, filters, sort, altText }) {
+  const query = { queryState: {
+    Category: { projections: [colProj(table, category, { active: true })] },
+    Y: { projections: yColumns.map(yField) },
+    Y2: { projections: y2Columns.map(yField) },
+  } };
+  if (sort) {
+    query.sortDefinition = { sort: [{ field: sort.agg !== undefined ? { Aggregation: { Expression: { Column: { Expression: { SourceRef: { Entity: sort.table } }, Property: sort.property } }, Function: sort.agg } } : meas(sort.table, sort.property), direction: sort.direction }], isDefaultSort: true };
+  }
+  const vc = visualContainer({
+    name, x, y, z, w, h,
+    visual: {
+      visualType: "lineClusteredColumnComboChart",
+      query,
+      objects: {
+        legend: [{ properties: { position: litExpr("'Top'") } }],
+        ...(referenceLine !== undefined ? { y1AxisReferenceLine: [{ properties: {
+          show: litExpr("true"), value: litExpr(`${referenceLine}D`),
+          lineColor: solidLit(COLOR.slate), style: litExpr("'dashed'"), transparency: litExpr("10D"),
+        } }] } : {}),
+      },
+      visualContainerObjects: withAltText(title ? staticTitleVCO(title) : undefined, altText || title),
     },
   });
   if (filters) vc.filterConfig = { filters };
@@ -376,18 +424,19 @@ function dropdownSlicer({ name, x, y, z, w = 180, h = 80, table, property, heade
   });
 }
 
-function tileSlicer({ name, x, y, z, w, h = 80, table, property, header }) {
+// Back-navigation button, required on drillthrough pages.
+function backButton({ name, x, y, z, w = 48, h = 48 }) {
   return visualContainer({
     name, x, y, z, w, h,
     visual: {
-      visualType: "advancedSlicerVisual",
-      query: { queryState: { Values: { projections: [colProj(table, property)] } } },
+      visualType: "actionButton",
       objects: {
-        layout: [{ properties: { style: litExpr("'Cards'"), rowCount: litExpr("1L") } }],
+        icon: [{ properties: { show: litExpr("true"), shapeType: litExpr("'back'"), lineColor: solidLit(COLOR.steelBlue), lineWeight: litExpr("3L"), iconSize: litExpr("24D") }, selector: { id: "default" } }],
+        fill: [{ properties: { show: litExpr("true"), fillColor: solidLit("#FFFFFF"), transparency: litExpr("0D") }, selector: { id: "default" } }],
+        outline: [{ properties: { show: litExpr("true"), lineColor: solidLit(COLOR.hairline), weight: litExpr("1D") }, selector: { id: "default" } }],
       },
       visualContainerObjects: {
-        title: [{ properties: { show: litExpr("true"), text: litExpr(`'${header}'`), fontSize: litExpr("10D") } }],
-        padding: [{ properties: { top: litExpr("8D"), bottom: litExpr("8D"), left: litExpr("8D"), right: litExpr("8D") } }],
+        visualLink: [{ properties: { show: litExpr("true"), type: litExpr("'Back'") } }],
       },
     },
   });
@@ -461,7 +510,15 @@ function categoricalFilter(table, property, literalValue) {
   };
 }
 
-function writePage({ displayName, filters, build }) {
+// A drillthrough target page needs: a page-level filter with
+// howCreated: "Drillthrough" for the field being drilled on, plus a
+// pageBinding.parameters entry pointing back at that filter by name.
+function drillthroughFilter(table, property) {
+  const name = filterId();
+  return { name, field: col(table, property), type: "Categorical", howCreated: "Drillthrough" };
+}
+
+function writePage({ displayName, filters, pageType, visibility, pageBinding, build }) {
   const id = pageId();
   const dir = path.join(PAGES_DIR, id);
   fs.mkdirSync(path.join(dir, "visuals"), { recursive: true });
@@ -476,6 +533,9 @@ function writePage({ displayName, filters, build }) {
     objects: { background: [{ properties: { color: solidLit("#FAFAFA"), transparency: litExpr("0D") } }] },
   };
   if (filters) page.filterConfig = { filters };
+  if (pageType) page.type = pageType;
+  if (visibility) page.visibility = visibility;
+  if (pageBinding) page.pageBinding = pageBinding;
   fs.writeFileSync(path.join(dir, "page.json"), JSON.stringify(page, null, 2));
 
   const visuals = build();
@@ -513,7 +573,12 @@ const page1Id = writePage({
     }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 876, y: titleRow.y, z: 1001, w: 200, h: titleRow.h, table: "Airport", property: "Airport Key", header: "Station" }));
     visuals.push(dropdownSlicer({ name: visualId(), x: 1092, y: titleRow.y, z: 1002, w: 140, h: titleRow.h, table: "Date", property: "Year", header: "Year" }));
-    visuals.push(tileSlicer({ name: visualId(), x: 1248, y: titleRow.y, z: 1003, w: 608, h: titleRow.h, table: "Hub KPI", property: "Hub KPI", header: "Hero Chart Metric" }));
+    // Dropdown, not tiles: the Hub KPI field parameter has 5 values, and the
+    // card-tile layout truncated/clipped once there wasn't room for all 5
+    // in one row at this width. A dropdown shows the full label text
+    // regardless of option count and has standard combobox keyboard/screen-
+    // reader semantics, which the custom tile buttons don't.
+    visuals.push(dropdownSlicer({ name: visualId(), x: 1248, y: titleRow.y, z: 1003, w: 240, h: titleRow.h, table: "Hub KPI", property: "Hub KPI", header: "Hero Chart Metric" }));
 
     // KPI strip -- 5 cards with reference-label context (vs-LY for D0/A14), YoY status accent
     const kc = cols(5, CONTENT_W, MARGIN);
@@ -556,10 +621,16 @@ const page1Id = writePage({
       filters: [categoricalFilter("Airport", "AA Hub", "true")],
       gradient: { min: COLOR.steelBlueTint, max: COLOR.steelBlue },
     }));
+    // Yearly grain, not monthly: this panel is ~600px wide, a third the
+    // hero chart's width, which already shows D0%/A14% at monthly grain
+    // above. 44 month labels crammed into a narrow panel collided with the
+    // y-axis tick labels and rendered as an unreadable flat line pinned
+    // under overlapping text. Year-level still answers "is the gap
+    // closing over time" at a glance, and reads cleanly at this size.
     visuals.push(lineChart({
       name: visualId(), x: sc[2].x, y: suppRow.y, z: 1032, w: sc[2].w, h: suppRow.h,
       title: "Weather-Adjusted D0 Gap Trend (6 Hubs)",
-      table: "Date", category: "Year", categoryExtra: [{ table: "Date", property: "Month Name" }],
+      table: "Date", category: "Year",
       yMeasures: [{ table: "Station Day Scorecard", property: "Avg D0 vs Expected (pp)", color: COLOR.gold }],
       referenceLine: 0,
     }));
@@ -626,26 +697,24 @@ const page2Id = writePage({
       yMeasures: [{ table: "Bank", property: "Peak Avg Flights", agg: 1 }],
     }));
 
-    const sc = cols(3, CONTENT_W, MARGIN);
+    // Two visuals instead of three: the D0/A14 pair is a real 2-series
+    // comparison (kept as a chart), but Departures and Taxi-Out were each
+    // a flat single-measure "2 bars" chart -- the same shape repeated with
+    // only the color and measure swapped. Collapsed into one comparison
+    // table instead of a 3rd near-identical bar chart.
+    const sc = cols(2, CONTENT_W, MARGIN);
     visuals.push(barChart({
       name: visualId(), x: sc[0].x, y: suppRow.y, z: 1030, w: sc[0].w, h: suppRow.h,
       type: "clusteredColumnChart", title: "D0 % / A14 % Pre vs Post Rebank",
       table: "Date", category: "Is Post Rebank",
       yMeasures: [{ table: "Flight Leg", property: "D0 %", color: COLOR.steelBlue }, { table: "Flight Leg", property: "A14 %", color: COLOR.burntOrange }],
     }));
-    visuals.push(barChart({
+    visuals.push(pivotTable({
       name: visualId(), x: sc[1].x, y: suppRow.y, z: 1031, w: sc[1].w, h: suppRow.h,
-      type: "clusteredColumnChart", title: "Scheduled Departures Pre vs Post Rebank",
-      table: "Date", category: "Is Post Rebank",
-      yMeasures: [{ table: "Flight Leg", property: "Flight Count" }],
-      gradient: { min: COLOR.slateTint, max: COLOR.slate },
-    }));
-    visuals.push(barChart({
-      name: visualId(), x: sc[2].x, y: suppRow.y, z: 1032, w: sc[2].w, h: suppRow.h,
-      type: "clusteredColumnChart", title: "Mean Taxi-Out Min Pre vs Post Rebank",
-      table: "Date", category: "Is Post Rebank",
-      yMeasures: [{ table: "Flight Leg", property: "Mean Taxi-Out Min" }],
-      gradient: { min: COLOR.tealTint, max: COLOR.teal },
+      title: "Departures & Taxi-Out, Pre vs Post Rebank",
+      rows: [{ table: "Date", property: "Is Post Rebank" }],
+      values: [{ table: "Flight Leg", property: "Flight Count" }, { table: "Flight Leg", property: "Mean Taxi-Out Min" }],
+      dataBarOn: { table: "Flight Leg", property: "Flight Count" },
     }));
 
     visuals.push(tableExVisual({
@@ -689,7 +758,8 @@ const page3Id = writePage({
         },
       },
     }));
-    visuals.push(tileSlicer({ name: visualId(), x: 1296, y: titleRow.y, z: 1001, w: 424, h: titleRow.h, table: "Turn Metric", property: "Turn Metric", header: "Chart Metric" }));
+    // Dropdown, not tiles -- same truncation fix as Hub KPI above.
+    visuals.push(dropdownSlicer({ name: visualId(), x: 1296, y: titleRow.y, z: 1001, w: 240, h: titleRow.h, table: "Turn Metric", property: "Turn Metric", header: "Chart Metric" }));
 
     // Headline finding: station-caused vs inbound-caused delay (README #3)
     const kc = cols(4, CONTENT_W, MARGIN);
@@ -709,33 +779,23 @@ const page3Id = writePage({
       invertAxis: false,
     }));
 
-    const sc = cols(3, CONTENT_W, MARGIN);
-    visuals.push(barChart({
-      name: visualId(), x: sc[0].x, y: suppRow.y, z: 1030, w: sc[0].w, h: suppRow.h,
-      title: "Avg Minutes Recovered/Turn by Fleet (Top 10 by Volume, DFW)",
+    // One dual-axis chart instead of three flat single-measure bar charts
+    // (Minutes Recovered, Turn Volume, Scheduled Turn Length, all by the
+    // same Fleet Family category -- the same shape repeated three times
+    // with only the measure swapped). Volume (columns) and recovery
+    // (line) share the fleet ranking and are the two genuinely paired
+    // questions -- "which fleets fly the most turns, and do high-volume
+    // fleets recover more or less time." Scheduled turn length moves to
+    // the Fleet Turn Detail drillthrough page (right-click any fleet bar)
+    // instead of sitting here as a third near-identical chart.
+    visuals.push(comboChart({
+      name: visualId(), x: MARGIN, y: suppRow.y, z: 1030, w: CONTENT_W, h: suppRow.h,
+      title: "Turn Volume vs. Minutes Recovered by Fleet (Top 10 by Volume, DFW) -- Right-Click a Fleet to Drill Through",
       table: "Aircraft Turn", category: "Fleet Family",
-      yMeasures: [{ table: "Aircraft Turn", property: "Minutes Recovered per Turn" }],
-      sort: { table: "Aircraft Turn", property: "Minutes Recovered per Turn", direction: "Ascending" },
-      filters: [dfwTurnFilter(), topNFilter("Aircraft Turn", "Fleet Family", 10, 2, "Scheduled Turn Min", 2)],
-      gradient: { min: COLOR.tealTint, max: COLOR.teal },
-    }));
-    visuals.push(barChart({
-      name: visualId(), x: sc[1].x, y: suppRow.y, z: 1031, w: sc[1].w, h: suppRow.h,
-      title: "Turn Volume by Fleet (Top 10, DFW)",
-      table: "Aircraft Turn", category: "Fleet Family",
-      yMeasures: [{ table: "Aircraft Turn", property: "Turn Count" }],
+      yColumns: [{ table: "Aircraft Turn", property: "Turn Count" }],
+      y2Columns: [{ table: "Aircraft Turn", property: "Minutes Recovered per Turn" }],
       sort: { table: "Aircraft Turn", property: "Turn Count", direction: "Descending" },
       filters: [dfwTurnFilter(), topNFilter("Aircraft Turn", "Fleet Family", 10, 2, "Scheduled Turn Min", 2)],
-      gradient: { min: COLOR.slateTint, max: COLOR.slate },
-    }));
-    visuals.push(barChart({
-      name: visualId(), x: sc[2].x, y: suppRow.y, z: 1032, w: sc[2].w, h: suppRow.h,
-      title: "Avg Scheduled Turn Length by Fleet (Top 10 by Volume, min, DFW)",
-      table: "Aircraft Turn", category: "Fleet Family",
-      yMeasures: [{ table: "Aircraft Turn", property: "Scheduled Turn Min", agg: 1 }],
-      sort: { table: "Aircraft Turn", property: "Scheduled Turn Min", direction: "Ascending", agg: 1 },
-      filters: [dfwTurnFilter(), topNFilter("Aircraft Turn", "Fleet Family", 10, 2, "Scheduled Turn Min", 2)],
-      gradient: { min: COLOR.crimsonTint, max: COLOR.crimson },
     }));
 
     visuals.push(tableExVisual({
@@ -806,30 +866,28 @@ const page4Id = writePage({
       ],
     }));
 
-    const sc = cols(3, CONTENT_W, MARGIN);
+    // Two visuals instead of three: the two by-station bar charts (Carrier
+    // Delay Minutes, Controllable Delay Share) were the same chart type and
+    // category with only the measure swapped. Paired into one dual-axis
+    // combo instead -- it answers a real joint question ("do the stations
+    // with the most carrier-caused minutes also have the highest
+    // controllable share, or is their delay mostly weather/NAS-driven?")
+    // that two separate bar charts left the reader to eyeball across panels.
+    const sc = cols(2, CONTENT_W, MARGIN);
     visuals.push(lineChart({
       name: visualId(), x: sc[0].x, y: suppRow.y, z: 1030, w: sc[0].w, h: suppRow.h,
       title: "Controllable & Late-Aircraft Share by Month",
       table: "Date", category: "Year", categoryExtra: [{ table: "Date", property: "Month Name" }],
       yMeasures: [{ table: "Flight Leg", property: "Controllable Delay Share", color: COLOR.steelBlue }, { table: "Flight Leg", property: "Late Aircraft Delay Share", color: COLOR.plum }],
     }));
-    visuals.push(barChart({
+    visuals.push(comboChart({
       name: visualId(), x: sc[1].x, y: suppRow.y, z: 1031, w: sc[1].w, h: suppRow.h,
-      type: "barChart", title: "Carrier Delay Minutes by Station",
+      title: "Carrier Delay Minutes vs. Controllable Delay Share by Station",
       table: "Airport", category: "Airport Key",
-      yMeasures: [{ table: "Flight Leg", property: "Carrier Delay Minutes" }],
+      yColumns: [{ table: "Flight Leg", property: "Carrier Delay Minutes" }],
+      y2Columns: [{ table: "Flight Leg", property: "Controllable Delay Share" }],
       sort: { table: "Flight Leg", property: "Carrier Delay Minutes", direction: "Descending" },
       filters: [categoricalFilter("Airport", "AA Hub", "true")],
-      gradient: { min: COLOR.burntOrangeTint, max: COLOR.burntOrange },
-    }));
-    visuals.push(barChart({
-      name: visualId(), x: sc[2].x, y: suppRow.y, z: 1032, w: sc[2].w, h: suppRow.h,
-      type: "barChart", title: "Controllable Delay Share by Station",
-      table: "Airport", category: "Airport Key",
-      yMeasures: [{ table: "Flight Leg", property: "Controllable Delay Share" }],
-      sort: { table: "Flight Leg", property: "Controllable Delay Share", direction: "Descending" },
-      filters: [categoricalFilter("Airport", "AA Hub", "true")],
-      gradient: { min: COLOR.steelBlueTint, max: COLOR.steelBlue },
     }));
 
     visuals.push(pivotTable({
@@ -855,12 +913,225 @@ const page4Id = writePage({
   },
 });
 
+// ============================================================
+// Page 5: Rebank Impact -- event-study diff-in-diff vs ORD control
+// ============================================================
+const page5Id = writePage({
+  displayName: "Rebank Impact",
+  build: () => {
+    const visuals = [];
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 140 }, { h: 320 }, { h: 220 }]);
+    const [titleRow, kpiRow, heroRow, detailRow] = rows;
+
+    visuals.push(visualContainer({
+      name: visualId(), x: MARGIN, y: titleRow.y, z: 1000, w: 1600, h: titleRow.h,
+      visual: {
+        visualType: "textbox",
+        objects: {
+          general: [{ properties: { paragraphs: [{ textRuns: [{
+            value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+          }] }] } }],
+          values: [{ properties: { expr: { expr: meas("Flight Leg", "Rebank Impact Title") } }, selector: { id: "pageTitle" } }],
+        },
+      },
+    }));
+
+    // Effect-size cards: DFW vs ORD control, diff-in-diff, weather-adjusted
+    // (signature analysis #2). Crimson = DFW got worse relative to control
+    // post-rebank; slate = not statistically significant.
+    const kc = cols(3, CONTENT_W, MARGIN);
+    visuals.push(kpiCard({ name: visualId(), x: kc[0].x, y: kpiRow.y, z: 1010, w: kc[0].w, h: kpiRow.h, table: "Rebank Effect", measureName: "D0 Effect (pts)", label: "D0 Effect vs ORD Control, p<0.01", accent: COLOR.crimson }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[1].x, y: kpiRow.y, z: 1011, w: kc[1].w, h: kpiRow.h, table: "Rebank Effect", measureName: "A14 Effect (pts)", label: "A14 Effect vs ORD Control, p<0.01", accent: COLOR.crimson }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[2].x, y: kpiRow.y, z: 1012, w: kc[2].w, h: kpiRow.h, table: "Rebank Effect", measureName: "TXO Effect (min)", label: "Taxi-Out Effect vs ORD Control, n.s. (p=0.87)", accent: COLOR.slate }));
+
+    // Hero: event-study coefficient by week relative to the rebank, with its
+    // 95% CI traced as two companion lines and a reference line at 0 (no
+    // effect). This is the diff-in-diff identification check: coefficients
+    // should sit near 0 before week 0 (parallel trends) and move away after.
+    visuals.push(lineChart({
+      name: visualId(), x: MARGIN, y: heroRow.y, z: 1020, w: CONTENT_W, h: heroRow.h,
+      title: "Weekly D0 Effect vs ORD Control, Relative to Rebank Week (Coefficient and 95% CI)",
+      table: "Rebank Event Study", category: "Week Relative",
+      yMeasures: [
+        { table: "Rebank Event Study", property: "Event Study Coef", color: COLOR.steelBlue },
+        { table: "Rebank Event Study", property: "Event Study CI Low", color: COLOR.slate },
+        { table: "Rebank Event Study", property: "Event Study CI High", color: COLOR.slate },
+      ],
+      referenceLine: 0,
+    }));
+
+    // Detail: full effect table (left) + pre-trend / methodology callout (right)
+    const dc = cols(2, CONTENT_W, MARGIN);
+    visuals.push(tableExVisual({
+      name: visualId(), x: dc[0].x, y: detailRow.y, z: 1030, w: dc[0].w, h: detailRow.h,
+      title: "Effect Sizes, DFW vs ORD Control (Diff-in-Diff)",
+      columns: [
+        { table: "Rebank Effect", property: "Metric" },
+        { table: "Rebank Effect", property: "Estimate" },
+        { table: "Rebank Effect", property: "Ci Low" },
+        { table: "Rebank Effect", property: "Ci High" },
+        { table: "Rebank Effect", property: "P Value" },
+      ],
+      sort: { table: "Rebank Effect", property: "Metric", direction: "Ascending" },
+      dataBarOn: { table: "Rebank Effect", property: "Estimate" },
+    }));
+    visuals.push(textbox({
+      name: visualId(), x: dc[1].x, y: detailRow.y, z: 1031, w: dc[1].w, h: detailRow.h,
+      size: "11pt", italic: false,
+      text: "Pre-trend check: weekly coefficients for weeks -7 through -1 sit close to 0 (parallel-trends holds), "
+        + "with one marginal point at week -8 noted as a caveat rather than smoothed away. Post-rebank weeks move "
+        + "further negative, consistent with the headline D0/A14 effect sizes at left -- DFW's reliability did not "
+        + "improve relative to ORD after the April 2026 rebank, net of weather. Taxi-out time effect is directionally "
+        + "favorable but not statistically significant. Method: two-way fixed-effects diff-in-diff, DFW vs ORD, "
+        + "weather-adjusted (signature analysis #2, analysis/dfw_rebank_event_study.py).",
+    }));
+
+    return visuals;
+  },
+});
+
+// ============================================================
+// Page 6: Passenger Flow -- TSA / CBP hourly profiles at DFW
+// ============================================================
+const page6Id = writePage({
+  displayName: "Passenger Flow",
+  build: () => {
+    const visuals = [];
+    const rows = layout(MARGIN, [{ h: 80 }, { h: 140 }, { h: 300 }, { h: 280 }]);
+    const [titleRow, kpiRow, heroRow, suppRow] = rows;
+
+    visuals.push(visualContainer({
+      name: visualId(), x: MARGIN, y: titleRow.y, z: 1000, w: 1600, h: titleRow.h,
+      visual: {
+        visualType: "textbox",
+        objects: {
+          general: [{ properties: { paragraphs: [{ textRuns: [{
+            value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "20pt", color: COLOR.ink },
+          }] }] } }],
+          values: [{ properties: { expr: { expr: meas("Flight Leg", "Passenger Flow Title") } }, selector: { id: "pageTitle" } }],
+        },
+      },
+    }));
+
+    // KPI strip: real cumulative totals from the raw TSA/CBP fact tables
+    // (not the small hourly-profile tables used for shape below).
+    const dfwCheckpointFilter = () => categoricalFilter("Checkpoint Hour", "Station", "'DFW'");
+    const kc = cols(4, CONTENT_W, MARGIN);
+    visuals.push(kpiCard({ name: visualId(), x: kc[0].x, y: kpiRow.y, z: 1010, w: kc[0].w, h: kpiRow.h, table: "Checkpoint Hour", measureName: "TSA Passengers Screened", label: "DFW TSA Passengers Screened (All Hours on File)", accent: COLOR.steelBlue, filters: [dfwCheckpointFilter()] }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[1].x, y: kpiRow.y, z: 1011, w: kc[1].w, h: kpiRow.h, table: "CBP Wait Hour", measureName: "Avg CBP Wait Non-US (min)", label: "DFW CBP Avg Wait, Non-US (min)", accent: COLOR.burntOrange }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[2].x, y: kpiRow.y, z: 1012, w: kc[2].w, h: kpiRow.h, table: "CBP Wait Hour", measureName: "Max CBP Wait Non-US (min)", label: "DFW CBP Peak Wait, Non-US (min)", accent: COLOR.crimson }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[3].x, y: kpiRow.y, z: 1013, w: kc[3].w, h: kpiRow.h, table: "CBP Wait Hour", measureName: "CBP Flight Count (Sum)", label: "DFW International Arrivals Processed (CBP)", accent: COLOR.slate }));
+
+    // Hero: TSA checkpoint throughput (columns, left axis) vs scheduled
+    // departures (line, right axis) by local hour -- does checkpoint
+    // staffing track the schedule's own departure wave shape?
+    visuals.push(comboChart({
+      name: visualId(), x: MARGIN, y: heroRow.y, z: 1020, w: CONTENT_W, h: heroRow.h,
+      title: "TSA Checkpoint Throughput vs. Scheduled Departures by Local Hour",
+      table: "TSA Departure Hour Profile", category: "Local Hour",
+      yColumns: [{ table: "TSA Departure Hour Profile", property: "Mean Passengers Screened", agg: 1 }],
+      y2Columns: [{ table: "TSA Departure Hour Profile", property: "Mean Scheduled Departures", agg: 1 }],
+    }));
+
+    // Supporting row (2-up): CBP wait vs CBP's own volume; cross-check of
+    // the BTS-proxy international-arrivals estimate against CBP's actual count.
+    const sc = cols(2, CONTENT_W, MARGIN);
+    visuals.push(comboChart({
+      name: visualId(), x: sc[0].x, y: suppRow.y, z: 1030, w: sc[0].w, h: suppRow.h,
+      title: "CBP Wait Time (US vs Non-US) vs CBP Passenger Volume by Local Hour",
+      table: "CBP Hour Profile", category: "Local Hour",
+      yColumns: [{ table: "CBP Hour Profile", property: "Mean Cbp Total Passengers", agg: 1 }],
+      y2Columns: [
+        { table: "CBP Hour Profile", property: "Mean Avg Wait Us Min", agg: 1 },
+        { table: "CBP Hour Profile", property: "Mean Avg Wait Non Us Min", agg: 1 },
+      ],
+    }));
+    visuals.push(comboChart({
+      name: visualId(), x: sc[1].x, y: suppRow.y, z: 1031, w: sc[1].w, h: suppRow.h,
+      title: "Cross-Check: BTS-Proxy International Arrivals vs. CBP Passenger Volume by Hour",
+      table: "CBP Hour Profile", category: "Local Hour",
+      yColumns: [{ table: "CBP Hour Profile", property: "Mean Bts Proxy Intl Arrivals", agg: 1 }],
+      y2Columns: [{ table: "CBP Hour Profile", property: "Mean Cbp Total Passengers", agg: 1 }],
+    }));
+
+    visuals.push(textbox({
+      name: visualId(), x: MARGIN, y: suppRow.y + suppRow.h + 4, z: 1041, w: CONTENT_W, h: 36,
+      text: "Scope: hourly profiles are means across the analysis window in analysis/dfw_passenger_flow.py (signature "
+        + "analysis #6). Checkpoint Hour is TSA's full national checkpoint feed, filtered to DFW above; CBP Wait Hour "
+        + "is DFW-only by data construction. BTS-proxy international arrivals are a schedule-based estimate (BTS T-100 "
+        + "segment is out of scope -- ADR 0012), not a direct CBP measurement, so the cross-check at right is a shape "
+        + "comparison, not a reconciliation to the decimal.",
+    }));
+
+    return visuals;
+  },
+});
+
+// ============================================================
+// Page 7: Fleet Turn Detail -- drillthrough target from Turn Performance's
+// fleet charts (right-click a fleet bar -> Drill Through). Hidden from the
+// page-nav tab strip since it only makes sense with a fleet already
+// selected; carries the scheduled-turn-length metric that would otherwise
+// be a fourth near-identical "by Fleet Family" bar chart on Page 3.
+// ============================================================
+const fleetDrillFilter = drillthroughFilter("Aircraft Turn", "Fleet Family");
+const page7Id = writePage({
+  displayName: "Fleet Turn Detail",
+  pageType: "Drillthrough",
+  visibility: "HiddenInViewMode",
+  filters: [categoricalFilter("Airport", "Airport Key", "'DFW'"), fleetDrillFilter],
+  pageBinding: {
+    name: "Pod",
+    type: "Drillthrough",
+    parameters: [{
+      name: `Param_${fleetDrillFilter.name}`,
+      boundFilter: fleetDrillFilter.name,
+      fieldExpr: col("Aircraft Turn", "Fleet Family"),
+    }],
+  },
+  build: () => {
+    const visuals = [];
+    const rows = layout(MARGIN, [{ h: 100 }, { h: 240 }]);
+    const [titleRow, kpiRow] = rows;
+
+    visuals.push(backButton({ name: visualId(), x: MARGIN, y: titleRow.y + 16, z: 999 }));
+    visuals.push(visualContainer({
+      name: visualId(), x: MARGIN + 64, y: titleRow.y, z: 1000, w: CONTENT_W - 64, h: titleRow.h,
+      visual: {
+        visualType: "textbox",
+        objects: {
+          general: [{ properties: { paragraphs: [{ textRuns: [{
+            value: { propertyIdentifier: { objectName: "values", propertyName: "expr" }, selector: { id: "pageTitle" } },
+            textStyle: { fontFamily: "Segoe UI Semibold", fontSize: "22pt", color: COLOR.ink },
+          }] }] } }],
+          values: [{ properties: { expr: { expr: meas("Aircraft Turn", "Fleet Detail Title") } }, selector: { id: "pageTitle" } }],
+        },
+      },
+    }));
+
+    const kc = cols(4, CONTENT_W, MARGIN);
+    visuals.push(kpiCard({ name: visualId(), x: kc[0].x, y: kpiRow.y, z: 1010, w: kc[0].w, h: kpiRow.h, table: "Aircraft Turn", measureName: "Outbound D0 %", label: "Outbound D0 %, DFW, This Fleet", accent: COLOR.steelBlue }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[1].x, y: kpiRow.y, z: 1011, w: kc[1].w, h: kpiRow.h, table: "Aircraft Turn", measureName: "Minutes Recovered per Turn", label: "Avg Minutes Recovered/Turn", accent: COLOR.teal }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[2].x, y: kpiRow.y, z: 1012, w: kc[2].w, h: kpiRow.h, table: "Aircraft Turn", measureName: "Turn Count", label: "Paired Turns, DFW", accent: COLOR.slate }));
+    visuals.push(kpiCard({ name: visualId(), x: kc[3].x, y: kpiRow.y, z: 1013, w: kc[3].w, h: kpiRow.h, table: "Aircraft Turn", measureName: "Avg Scheduled Turn Min", label: "Avg Scheduled Turn Length (min)", accent: COLOR.gold }));
+
+    visuals.push(textbox({
+      name: visualId(), x: MARGIN, y: kpiRow.y + kpiRow.h + 4, z: 1020, w: CONTENT_W, h: 36,
+      text: "Drillthrough target: right-click a fleet bar on Turn Performance and choose \"Drill through\" to land here filtered to that fleet. Use the back button (top-left) to return.",
+    }));
+
+    return visuals;
+  },
+});
+
 // ---- pages.json ----
-const allPageIds = [page1Id, page2Id, page3Id, page4Id];
+const allPageIds = [page1Id, page2Id, page3Id, page4Id, page5Id, page6Id, page7Id];
 const pagesJsonPath = path.join(PAGES_DIR, "pages.json");
 const pagesJson = JSON.parse(fs.readFileSync(pagesJsonPath, "utf8"));
 pagesJson.pageOrder = allPageIds;
 pagesJson.activePageName = allPageIds[0];
 fs.writeFileSync(pagesJsonPath, JSON.stringify(pagesJson, null, 2));
 
-console.log(JSON.stringify({ page1Id, page2Id, page3Id, page4Id }, null, 2));
+console.log(JSON.stringify({ page1Id, page2Id, page3Id, page4Id, page5Id, page6Id, page7Id }, null, 2));

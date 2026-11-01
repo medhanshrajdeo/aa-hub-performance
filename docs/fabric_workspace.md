@@ -301,15 +301,18 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
 
 ## Report
 
-- `rpt_hubops` (id `d8404b97-b98a-4228-97cf-3b86824de65c`) -- 4 pages
-  (Hub Scorecard, Bank Performance, Turn Performance, Delay Root Cause)
-  on `sm_hubops`, built with the `powerbi-report-authoring` CLI
+- `rpt_hubops` (id `d8404b97-b98a-4228-97cf-3b86824de65c`) -- 7 pages,
+  6 visible (Hub Scorecard, Bank Performance, Turn Performance, Delay
+  Root Cause, Rebank Impact, Passenger Flow) + 1 hidden drillthrough
+  target (Fleet Turn Detail, off Turn Performance's fleet charts) on
+  `sm_hubops`, built with the `powerbi-report-authoring` CLI
   (`@microsoft/powerbi-report-authoring-cli`) via a deterministic Node
   generator (`scripts/fabric/build_report.js`) rather than hand-edited
   PBIR, per the skill's own guidance for full-report builds. Verified
   against live data with `powerbi-report-author preview --host service`
-  (no Power BI Desktop available in this environment) -- all 4 pages
-  render clean, screenshots reviewed. `definition.pbir` binds via
+  and, once the user opened the pbip in Power BI Desktop, with the
+  `powerbi-desktop` bridge CLI directly -- all 7 pages render clean,
+  screenshots reviewed in both. `definition.pbir` binds via
   `byConnection` (a `byPath` reference to the co-located
   `sm_hubops.SemanticModel` folder validates locally but fails Fabric's
   import with *"Fabric REST API only supports byConnection
@@ -342,3 +345,19 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   [ADR 0016](decisions/0016-report-design-pass-field-parameter-bug.md)
   for the full bisection and fix. Redeployed via `updateDefinition` to
   the same report item; all 4 pages re-validated and re-rendered clean.
+- **Pages 5-6 + drillthrough + a11y/UX pass (2026-11-01):** added Rebank
+  Impact (event-study diff-in-diff vs ORD control) and Passenger Flow
+  (TSA/CBP hourly profiles), consolidated three same-shape/different-
+  measure bar-chart trios on pages 2-4 into single multi-series or dual-
+  axis (`lineClusteredColumnComboChart`) visuals, and added a real
+  drillthrough page (Fleet Turn Detail) instead of a fourth near-
+  identical "by Fleet Family" bar chart. Fixed three real defects found
+  by actually opening the pbip in Power BI Desktop and screenshot-
+  reviewing it, not just schema-validating: a theme gold (`#C9A227`)
+  that failed WCAG non-text contrast (2.4:1, needs 3:1) on white,
+  darkened to `#8A6D14` (4.9:1); two field-parameter tile-slicer pickers
+  that clipped/truncated once they had more than ~2 options, replaced
+  with dropdown slicers; and a monthly-grain supporting-panel line chart
+  whose axis labels collided into unreadable overlapping text in a
+  ~600px-wide panel, changed to yearly grain. See
+  [ADR 0017](decisions/0017-drillthrough-and-accessibility-pass.md).
