@@ -159,3 +159,35 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   convention (see `nb_bronze_bts` above) -- `lh_silver.fact_flight_leg`
   and `fact_flight_leg_quarantine` now hold the full Jan 2023-Aug 2026
   dataset.
+
+- `nb_gold_build` (id `f4397c03-39d3-4e87-976d-1341fd46adc7`) -- Phase 3:
+  creates `wh_gold`'s star schema and loads it, entirely via T-SQL
+  executed through `pyodbc` + an AAD access token from inside this Spark
+  notebook (confirmed available in Fabric's default runtime -- see ADR
+  0013). The big loads (`fact_flight_leg`, `fact_checkpoint_hour`,
+  `fact_cbp_wait_hour`, `dim_airport`, `dim_aircraft`) are pure
+  server-side `INSERT INTO ... SELECT` cross-database queries straight
+  from `lh_bronze`/`lh_silver` -- confirmed Fabric Warehouses in the same
+  workspace can query a Lakehouse's Delta tables directly by name, no
+  Spark data movement needed. Small dims and the locally-computed
+  analysis outputs (`dim_bank`, `fact_rebank_effect`,
+  `fact_rebank_event_study`) are generated/read in Python and inserted
+  via `executemany`. Two real bugs, both caught via this notebook's own
+  diagnostic-file writes (not portal access) and fixed in one round
+  trip: `DATETIME2` needs explicit `(6)` precision in Fabric Warehouse,
+  and `checkpoint` is a reserved T-SQL keyword needing bracket-quoting.
+  See ADR 0013 for the full story. Final row counts: `fact_flight_leg`
+  27,787,225, `fact_checkpoint_hour` 1,607,461, `fact_cbp_wait_hour`
+  20,740, `dim_airport` 2,060, `dim_aircraft` 1,635, plus all dims/small
+  facts. Phase 3's revised "done when" (reconciliation against BTS raw
+  aggregates, not DOT -- ADR 0012) passed across all 44 months: max D0
+  diff 0.0000924, max CF diff 0.0000087.
+
+- `nb_gold_turns` (id TBD) -- Phase 6's `fact_aircraft_turn`, "the table
+  nobody else builds from public data" per the plan. Pairs each tail's
+  inbound arrival with its next departure from the same station, same
+  rule as the tested `hubops.turns.pair_turns()` (same station,
+  non-negative gap, gap under 6 hours), reimplemented as a set-based
+  T-SQL window-function query (`LEAD()` per tail partition) instead of
+  row-by-row Python, since it runs over `fact_flight_leg`'s ~27.8M rows.
+  Must run after `nb_gold_build`.
