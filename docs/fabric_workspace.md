@@ -328,3 +328,17 @@ Created 2026-10-29 via `az rest` against the Fabric REST API (see
   shows bank *volume* waves + a DFW pre/post-rebank D0/A14 comparison
   rather than delay-by-bank; Delay Root Cause shows cause-minutes/shares
   by month rather than by hour and bank.
+- **Design pass (2026-11-01):** redesigned from a default-theme/static-
+  title build to a real identity -- "Industrial Dense / Analyst
+  Workbench" tone (custom theme `HubOpsWorkbench-a1f3.json`, steel-blue/
+  burnt-orange palette, FHD 1920x1080, tabular-numeral KPI cards with
+  YoY-status-conditional accent bars, FillRule gradient bars, data-bar
+  tables), dynamic measure-bound page titles, and two real field
+  parameters (`Hub KPI`, `Turn Metric`) exposed as tile-slicer pickers
+  for analyst self-service in Desktop. Hit a genuinely dangerous bug
+  along the way -- `SELECTEDVALUE` on a field parameter's display column
+  hangs (not errors) when evaluated outside a proper visual binding,
+  confirmed via a 120s+ stuck DAX query -- see
+  [ADR 0016](decisions/0016-report-design-pass-field-parameter-bug.md)
+  for the full bisection and fix. Redeployed via `updateDefinition` to
+  the same report item; all 4 pages re-validated and re-rendered clean.

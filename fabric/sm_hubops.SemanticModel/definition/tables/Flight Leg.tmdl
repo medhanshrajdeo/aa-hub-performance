@@ -138,6 +138,42 @@ table 'Flight Leg'
 		displayFolder: Delay cause
 		lineageTag: 051d4e73-837c-45f1-9b17-ef9a222dd9ee
 
+	/// Page-title text for Hub Scorecard, reflecting the current station slicer selection (or RLS-restricted station).
+	measure 'Hub Scorecard Title' =
+			VAR Station = SELECTEDVALUE ( 'Airport'[Airport Key] )
+			RETURN "Hub Scorecard — " & COALESCE ( Station, "All AA Hubs" )
+		displayFolder: Dynamic Titles
+		lineageTag: bbdd34c7-aaf5-4e45-9f49-fc83a105ca57
+
+	measure 'Bank Performance Title' =
+			VAR Period = SELECTEDVALUE ( 'Bank'[Period] )
+			RETURN "Bank Performance — DFW" & IF ( NOT ISBLANK ( Period ), " · " & Period, " · Pre vs Post Rebank" )
+		displayFolder: Dynamic Titles
+		lineageTag: 649f5704-dde9-4fc2-a58f-785fdbe7cb29
+
+	/// Static (not field-parameter-dependent): SELECTEDVALUE on a field-parameter display column is pathological outside a proper visual binding -- confirmed by testing, it hangs/times out when evaluated via a plain DAX query or a textbox binding. See ADR 0015/0016.
+	measure 'Turn Performance Title' = "Turn Performance — DFW · Station-Caused vs Inbound-Caused Delay"
+		displayFolder: Dynamic Titles
+		lineageTag: 0d0be8a6-b4f4-4726-87a4-c3c524a9b3eb
+
+	measure 'Delay Root Cause Title' =
+			VAR Yr = SELECTEDVALUE ( 'Date'[Year] )
+			RETURN "Delay Root Cause — AA Family" & IF ( NOT ISBLANK ( Yr ), " · " & Yr, " · 2023-2026" )
+		displayFolder: Dynamic Titles
+		lineageTag: 07afdbb4-bb2b-405a-bf80-0f05aa244f79
+
+	measure 'A14 vs Same Period LY Pts' =
+			VAR LY = CALCULATE ( [A14 %], SAMEPERIODLASTYEAR ( 'Date'[Full Date] ) )
+			RETURN IF ( NOT ISBLANK ( LY ), ( [A14 %] - LY ) * 100 )
+		formatString: +0.0;-0.0
+		displayFolder: KPI
+		lineageTag: fcd3ca07-908e-49a0-a44a-d67b08657329
+
+	/// Static (not field-parameter-dependent): SELECTEDVALUE on a field-parameter display column is pathological outside a proper visual binding -- confirmed by testing (hangs). Currently unused by any visual; fixed for safety since it shares the same bug pattern as the fixed Turn Performance Title.
+	measure 'Hub KPI Trend Title' = "Trend by Month (use the Hero Chart Metric picker to see field options)"
+		displayFolder: Dynamic Titles
+		lineageTag: 5493ca08-1562-45db-9954-1b5957182459
+
 	column 'Date Key'
 		dataType: int64
 		isHidden

@@ -1,0 +1,39 @@
+table 'Turn Metric'
+	lineageTag: b6ba6b54-68bc-4b73-b6e5-f48f0ce9c1b0
+
+	column 'Turn Metric Order'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e1982021-3a77-43a6-b25c-78c95c610ce3
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+	column 'Turn Metric Fields'
+		dataType: string
+		isHidden
+		lineageTag: 57d3d3bc-e5d0-4c7a-af31-786cc27b779e
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Turn Metric Order'
+
+		extendedProperty ParameterMetadata = {"version":3,"kind":2}
+
+	column 'Turn Metric'
+		dataType: string
+		lineageTag: 9b955edc-a27e-4efc-9f81-1ceff3f88d63
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Turn Metric Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Turn Metric Fields'
+
+	partition 'Turn Metric' = calculated
+		mode: import
+		source =
+				{
+				    ("Outbound D0 %", NAMEOF('Aircraft Turn'[Outbound D0 %]), 0),
+				    ("Minutes Recovered per Turn", NAMEOF('Aircraft Turn'[Minutes Recovered per Turn]), 1)
+				}
+

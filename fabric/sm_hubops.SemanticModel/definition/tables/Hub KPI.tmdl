@@ -1,0 +1,42 @@
+table 'Hub KPI'
+	lineageTag: 7063fc3b-fa5a-4250-a555-e8394486d20c
+
+	column 'Hub KPI Order'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 8c158100-95ca-4d7a-ad5a-47aa8644eb8c
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+	column 'Hub KPI Fields'
+		dataType: string
+		isHidden
+		lineageTag: 10555c96-be49-4464-93b6-d412c6b78fb0
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Hub KPI Order'
+
+		extendedProperty ParameterMetadata = {"version":3,"kind":2}
+
+	column 'Hub KPI'
+		dataType: string
+		lineageTag: 540e2435-0bd9-4393-90f2-a5c2998f6030
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Hub KPI Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Hub KPI Fields'
+
+	partition 'Hub KPI' = calculated
+		mode: import
+		source =
+				{
+				    ("D0 %", NAMEOF('Flight Leg'[D0 %]), 0),
+				    ("A14 %", NAMEOF('Flight Leg'[A14 %]), 1),
+				    ("CF %", NAMEOF('Flight Leg'[CF %]), 2),
+				    ("Controllable CF %", NAMEOF('Flight Leg'[Controllable CF %]), 3),
+				    ("Hub Throughput Pts", NAMEOF('Flight Leg'[Hub Throughput Pts]), 4)
+				}
+

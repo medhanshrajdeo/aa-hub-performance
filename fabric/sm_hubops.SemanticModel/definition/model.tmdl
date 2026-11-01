@@ -17,6 +17,8 @@ ref table 'Aircraft Turn'
 ref table 'Station Hour'
 ref table 'Station Day Scorecard'
 ref table 'Airport (Dest)'
+ref table 'Hub KPI'
+ref table 'Turn Metric'
 
 ref role 'Hub - DFW'
 ref role 'Hub - CLT'

@@ -1,8 +1,0 @@
-{
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
-  "name": "4a6953006b57f9483ca4",
-  "displayName": "Hub Scorecard",
-  "displayOption": "FitToPage",
-  "height": 720,
-  "width": 1280
-}
